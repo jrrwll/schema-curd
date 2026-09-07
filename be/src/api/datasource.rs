@@ -31,7 +31,7 @@ async fn list(
 ) -> Result<ApiPageResult<DatasourceListResult>, ApiError> {
     let op_user_id = identity.user_id;
 
-    let user = AccessService::permit_datasource_list(&state, op_user_id).await?;
+    let user = AccessService::verify_user(&state, op_user_id).await?;
     DatasourceService::list(&state, param, user).await.map(Into::into)
 }
 

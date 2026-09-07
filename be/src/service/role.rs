@@ -50,16 +50,15 @@ impl RoleService {
         let resource_type = param.resource_type.to_string();
         let resource_id = param.resource_id;
 
-        let found = Self::has_role(
-            state,
-            user_id,
-            resource_type.clone(),
-            resource_id,
-            role.clone(),
-        )
-        .await?;
-        if found {
-            return Ok(());
+        let role_entity = RoleRepo::get_by_uk(&state.pool, user_id, resource_type.clone(), resource_id)
+            .await
+            .map_err(ApiError::unknown)?;
+        if let Some(role_entity) = role_entity {
+            if role_entity.role == role {
+                return Ok(());
+            } else {
+                return Err(ErrorCode::role_cannot_grant(role_entity.id).into_error());
+            }
         }
 
         let entity = CreateUserRole {
@@ -86,61 +85,27 @@ impl RoleService {
         Ok(())
     }
 
-    async fn get_role(state: &ApiState, id: i64) -> Result<RoleEntity, ApiError> {
-        RoleRepo::get(&state.pool, id)
-            .await
-            .map_err(ApiError::unknown)?
-            .ok_or_else(|| ErrorCode::role_not_found(id).into_error())
-    }
-
-    async fn has_role(
-        state: &ApiState,
-        user_id: i64,
-        resource_type: String,
-        resource_id: i64,
-        expect_role: String,
-    ) -> Result<bool, ApiError> {
-        let role = RoleRepo::get_by_uk(&state.pool, user_id, resource_type, resource_id)
-            .await
-            .map_err(ApiError::unknown)?;
-        if let Some(role) = role
-            && role.role == expect_role
-        {
-            return Ok(true);
-        }
-        Ok(false)
-    }
-
     pub async fn update(
         state: &ApiState,
         param: RoleUpdateParam,
         op_user_id: i64,
     ) -> Result<(), ApiError> {
         let id = param.id;
-        Self::get_role(state, id).await?;
-
-        let param = param.grant;
-        let user_id = param.user_id;
         let role = param.role.to_string();
-        let resource_type = param.resource_type.to_string();
-        let resource_id = param.resource_id;
-        let found = Self::has_role(
-            state,
-            user_id,
-            resource_type.clone(),
-            resource_id.clone(),
-            role.clone(),
-        )
-        .await?;
-        if found {
-            return Err(ErrorCode::role_already_existing(resource_type, resource_id).into_error());
+
+        let role_entity = Self::get_role(state, id).await?;
+        if role_entity.role == role { 
+            return Err(ErrorCode::role_already_existing(
+                role_entity.resource_type, role_entity.resource_id).into_error());
         }
+
+        let user_id = role_entity.user_id;
 
         let entity = CreateUserRole {
             user_id,
             role,
-            resource_type,
-            resource_id,
+            resource_type: role_entity.resource_type,
+            resource_id: role_entity.resource_id,
         };
         let update_success = RoleRepo::update(&state.pool, id, entity, op_user_id)
             .await
@@ -149,6 +114,13 @@ impl RoleService {
             return Err(ErrorCode::operate_failed.into_error());
         }
         Ok(())
+    }
+
+    async fn get_role(state: &ApiState, id: i64) -> Result<RoleEntity, ApiError> {
+        RoleRepo::get(&state.pool, id)
+            .await
+            .map_err(ApiError::unknown)?
+            .ok_or_else(|| ErrorCode::role_not_found(id).into_error())
     }
 }
 

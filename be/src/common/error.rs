@@ -28,6 +28,9 @@ pub enum ErrorCode {
 
     #[error("Role already existing: {0} {1}")]
     role_already_existing(String, i64),
+
+    #[error("Role cannot grant: {0}")]
+    role_cannot_grant(i64),
     
     #[error("Datasource not found: {0}")]
     datasource_not_found(i64),

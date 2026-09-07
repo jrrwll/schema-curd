@@ -34,8 +34,9 @@ pub struct PhysicalTableListResult {
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct PhysicalColumnListParam {
-    pub datasource: String,
-    pub table: String,
+    pub table_id: Option<i64>,
+    pub datasource: Option<String>,
+    pub table: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

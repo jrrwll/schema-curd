@@ -14,22 +14,6 @@ pub struct AccessService;
 
 impl AccessService {
     // permits
-    pub async fn permit_datasource_list(
-        state: &ApiState,
-        user_id: i64,
-    ) -> Result<UserEntity, ApiError> {
-        let user = Self::verify_user(state, user_id).await?;
-        if user.super_admin {
-            return Ok(user);
-        }
-
-        let roles = Self::load_datasource_roles(state, user_id).await?;
-        if roles.is_empty() {
-            return Err(forbidden());
-        }
-        Ok(user)
-    }
-
     pub async fn permit_datasource_write_by_table_id(
         state: &ApiState,
         user_id: i64,
@@ -150,16 +134,13 @@ impl AccessService {
             Some((_, datasource_role)) => Some(datasource_role),
             None => None,
         };
-        if let Some(datasource_role) = datasource_role && datasource_role.implies(RoleEnum::Write) {
-            return Ok(Some((table, datasource_role)));
+        if let Some(role) = datasource_role && role.implies(RoleEnum::Write) {
+            return Ok(Some((table, role)));
         }
 
         let roles = Self::load_table_roles(state, user_id, table.datasource_name.clone()).await?;
-        if roles.is_empty() {
-            return Ok(datasource_role.map(|v| (table, v)));
-        }
         let Some(role) = roles.get(&table.id) else {
-            return Ok(None);
+            return Ok(datasource_role.map(|v| (table, v)));
         };
         Ok(Some((table, *role)))
     }

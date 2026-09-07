@@ -43,8 +43,7 @@ pub struct RoleGrantParam {
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct RoleUpdateParam {
     pub id: i64,
-    #[serde(flatten)]
-    pub grant: RoleGrantParam,
+    pub role: RoleEnum,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-use axum::{Router, extract::State, routing::post};
+use axum::{extract::State, routing::post, Router};
 
 use corers::api::ApiResult;
 use corers::axum::{ApiError, ValidatedJson};
@@ -83,9 +83,9 @@ async fn list_column_physical(
     Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<PhysicalColumnListParam>,
 ) -> Result<ApiResult<Vec<PhysicalColumnListResult>>, ApiError> {
-    let datasource_name = param.datasource;
-    let table_name = param.table;
+    let op_user_id = identity.user_id;
 
+    let (datasource_name, table_name) = permit_column_physical(&state, param, op_user_id).await?;
     PhysicalService::list_column(&state, datasource_name, table_name)
         .await
         .map(Into::into)
@@ -96,18 +96,28 @@ async fn refresh_column_physical(
     Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<PhysicalColumnListParam>,
 ) -> Result<ApiResult<Vec<PhysicalColumnListResult>>, ApiError> {
-    let datasource_name = param.datasource;
-    let table_name = param.table;
     let op_user_id = identity.user_id;
 
-    AccessService::require_table_role(
-        &state,
-        op_user_id,
-        Either::Right((datasource_name.clone(), table_name.clone())),
-        RoleEnum::Write,
-    )
-    .await?;
+    let (datasource_name, table_name) = permit_column_physical(&state, param, op_user_id).await?;
     PhysicalService::refresh_column(&state, datasource_name, table_name)
         .await
         .map(Into::into)
+}
+
+async fn permit_column_physical(state: &ApiState, param: PhysicalColumnListParam, op_user_id: i64) -> Result<(String, String), ApiError> {
+    let (datasource_name, table_name) = if let Some(table_id) = param.table_id {
+        let (table, _) = AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Read).await?;
+
+        (table.datasource_name, table.table_name)
+    } else if let Some(table_name) = param.table {
+        let Some(datasource_name) = param.datasource else {
+            return Err(ApiError::Validation("Param datasource is required since table is passed".to_owned()));
+        };
+        let (table, _) = AccessService::require_table_role(&state, op_user_id, Either::Right((datasource_name, table_name)), RoleEnum::Read).await?;
+
+        (table.datasource_name, table.table_name)
+    } else {
+        return Err(ApiError::Validation("Param table_id or table is required".to_owned()));
+    };
+    Ok((datasource_name, table_name))
 }
