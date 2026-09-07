@@ -1,0 +1,113 @@
+use axum::{Router, extract::State, routing::post};
+
+use corers::api::ApiResult;
+use corers::axum::{ApiError, ValidatedJson};
+
+use crate::model::embed::RoleEnum;
+use crate::service::AccessService;
+use crate::util::Either;
+use crate::{common::state::ApiState, http::extract::Authenticated, service::PhysicalService};
+
+use super::*;
+
+pub fn get_routes() -> Router<ApiState> {
+    Router::new().nest(
+        "/physical",
+        Router::new()
+            .route("/connection/test", post(test_connection))
+            .route("/table/list", post(list_table_physical))
+            .route("/table/refresh", post(refresh_table_physical))
+            .route("/column/list", post(list_column_physical))
+            .route("/column/refresh", post(refresh_column_physical)),
+    )
+}
+
+async fn test_connection(
+    State(state): State<ApiState>,
+    Authenticated(identity): Authenticated,
+    ValidatedJson(param): ValidatedJson<TestDatasourceParam>,
+) -> Result<ApiResult<TestDatasourceResult>, ApiError> {
+    let op_user_id = identity.user_id;
+
+    if let Some(id) = param.id {
+        AccessService::require_datasource_role(
+            &state,
+            op_user_id,
+            Either::Left(id),
+            RoleEnum::Write,
+        )
+        .await?;
+    } else {
+        AccessService::require_super_admin(&state, op_user_id).await?;
+    }
+
+    PhysicalService::test_connection(&state, param)
+        .await
+        .map(Into::into)
+}
+
+async fn list_table_physical(
+    State(state): State<ApiState>,
+    Authenticated(identity): Authenticated,
+    ValidatedJson(param): ValidatedJson<PhysicalTableListParam>,
+) -> Result<ApiResult<Vec<PhysicalTableListResult>>, ApiError> {
+    let datasource_name = param.datasource;
+
+    PhysicalService::list_table(&state, datasource_name)
+        .await
+        .map(Into::into)
+}
+
+async fn refresh_table_physical(
+    State(state): State<ApiState>,
+    Authenticated(identity): Authenticated,
+    ValidatedJson(param): ValidatedJson<PhysicalTableListParam>,
+) -> Result<ApiResult<Vec<PhysicalTableListResult>>, ApiError> {
+    let datasource_name = param.datasource;
+    let op_user_id = identity.user_id;
+
+    AccessService::require_datasource_role(
+        &state,
+        op_user_id,
+        Either::Right(datasource_name.clone()),
+        RoleEnum::Write,
+    )
+    .await?;
+    PhysicalService::refresh_table(&state, datasource_name)
+        .await
+        .map(Into::into)
+}
+
+async fn list_column_physical(
+    State(state): State<ApiState>,
+    Authenticated(identity): Authenticated,
+    ValidatedJson(param): ValidatedJson<PhysicalColumnListParam>,
+) -> Result<ApiResult<Vec<PhysicalColumnListResult>>, ApiError> {
+    let datasource_name = param.datasource;
+    let table_name = param.table;
+
+    PhysicalService::list_column(&state, datasource_name, table_name)
+        .await
+        .map(Into::into)
+}
+
+async fn refresh_column_physical(
+    State(state): State<ApiState>,
+    Authenticated(identity): Authenticated,
+    ValidatedJson(param): ValidatedJson<PhysicalColumnListParam>,
+) -> Result<ApiResult<Vec<PhysicalColumnListResult>>, ApiError> {
+    let datasource_name = param.datasource;
+    let table_name = param.table;
+    let op_user_id = identity.user_id;
+
+    AccessService::require_table_role(
+        &state,
+        op_user_id,
+        Either::Right((datasource_name.clone(), table_name.clone())),
+        RoleEnum::Write,
+    )
+    .await?;
+    PhysicalService::refresh_column(&state, datasource_name, table_name)
+        .await
+        .map(Into::into)
+}

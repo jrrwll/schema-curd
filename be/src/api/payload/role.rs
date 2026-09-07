@@ -1,0 +1,68 @@
+use serde::{Deserialize, Serialize};
+use validator::Validate;
+
+use crate::model::embed::{ResourceTypeEnum, RoleEnum};
+
+use super::PageParam;
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleListParam {
+    #[serde(flatten)]
+    pub page: PageParam,
+    #[serde(default)]
+    pub user_ids: Vec<i64>,
+    #[serde(default)]
+    pub resource_type: Option<ResourceTypeEnum>,
+    #[serde(default)]
+    pub resource_ids: Vec<i64>,
+    #[serde(default)]
+    pub roles: Vec<RoleEnum>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RoleListResult {
+    pub id: i64,
+    pub created_at: String,
+    pub user_id: i64,
+    pub user_name: String,
+    pub user_display_name: String,
+    pub user_disabled: bool,
+    pub role: RoleEnum,
+    pub resource_type: ResourceTypeEnum,
+    pub resource_id: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleGrantParam {
+    pub user_id: i64,
+    pub resource_type: ResourceTypeEnum,
+    pub resource_id: i64,
+    pub role: RoleEnum,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleUpdateParam {
+    pub id: i64,
+    #[serde(flatten)]
+    pub grant: RoleGrantParam,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum EffectiveRoleEnum {
+    None,
+    Read,
+    Write,
+}
+
+impl From<Option<RoleEnum>> for EffectiveRoleEnum {
+    fn from(value: Option<RoleEnum>) -> Self {
+        let Some(role) = value else {
+            return Self::None;
+        };
+        match role {
+            RoleEnum::Read => Self::Read,
+            RoleEnum::Write => Self::Write,
+        }
+    }
+}

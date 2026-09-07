@@ -1,0 +1,20 @@
+FROM rust:1.97-alpine AS builder
+
+RUN apk add --no-cache musl-dev openssl-dev pkgconfig
+
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+RUN cargo build --release
+RUN find src -depth -delete
+
+COPY src ./src
+
+RUN cargo build --release
+
+FROM scratch AS artifact
+
+COPY --from=builder /app/target/release/schema-curd /schema-curd

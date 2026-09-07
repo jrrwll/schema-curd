@@ -1,0 +1,32 @@
+[upstreams.backend]
+addrs = ["127.0.0.1:8000"]
+
+[plugins.static_files]
+category = "directory"
+path = "./fe/dist"
+index = "index.html"
+
+[plugins.compression]
+category = "compression"
+gzip_level = 6
+zstd_level = 3
+
+[locations.api]
+path = "/api/"
+upstream = "backend"
+plugins = ["compression"]
+weight = 2048
+
+[locations.static_files]
+path = "~^/.*\\.[^/]+$"
+plugins = ["static_files", "compression"]
+weight = 1024
+
+[locations.frontend]
+path = "/"
+rewrite = ".* /index.html"
+plugins = ["static_files", "compression"]
+
+[servers.main]
+addr = "0.0.0.0:80"
+locations = ["api", "static_files", "frontend"]
