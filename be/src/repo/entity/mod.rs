@@ -69,7 +69,7 @@ impl<'a> EntityRepo<'a> {
         Ok(affected)
     }
 
-    pub async fn list(&self, plan: EntityListPlan) -> anyhow::Result<(u64, Vec<Value>)> {
+    pub async fn list(&self, plan: EntityListPlan) -> anyhow::Result<(i64, Vec<Value>)> {
         match self.pool {
             RuntimePool::MySql(pool) => {
                 let (mut count, mut query) =
@@ -88,7 +88,7 @@ impl<'a> EntityRepo<'a> {
                     .iter()
                     .map(|row| mysql_row_to_value(row, &self.table.columns))
                     .collect::<anyhow::Result<Vec<_>>>()?;
-                Ok((total.max(0) as u64, items))
+                Ok((total, items))
             }
             RuntimePool::Postgres(pool) => {
                 let (mut count, mut query) = build_list_queries::<Postgres>(
@@ -109,7 +109,7 @@ impl<'a> EntityRepo<'a> {
                     .await
                     .context("Failed to query postgres records")?;
                 Ok((
-                    total.max(0) as u64,
+                    total,
                     items.into_iter().map(|item| item.0).collect(),
                 ))
             }

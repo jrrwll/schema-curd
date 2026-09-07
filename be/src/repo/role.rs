@@ -102,7 +102,7 @@ impl RoleRepo {
     pub async fn list(
         pool: &DbPool,
         param: RoleListParam,
-    ) -> Result<(u64, Vec<RoleEntity>), sqlx::Error> {
+    ) -> Result<(i64, Vec<RoleEntity>), sqlx::Error> {
         let (limit, offset) = param.page.get_limit_offset();
 
         let mut count_sql = QueryBuilder::new(
@@ -113,7 +113,7 @@ impl RoleRepo {
         );
         push_list_filters(&mut count_sql, &param);
 
-        let total: u64 = count_sql.build_query_scalar().fetch_one(pool).await?;
+        let total: i64 = count_sql.build_query_scalar().fetch_one(pool).await?;
 
         let mut rows_sql = QueryBuilder::new(
             "

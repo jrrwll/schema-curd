@@ -77,7 +77,7 @@ impl DatasourceRepo {
     pub async fn list(
         pool: &DbPool,
         param: DatasourceListParam,
-    ) -> Result<(u64, Vec<DatasourceEntity>), sqlx::Error> {
+    ) -> Result<(i64, Vec<DatasourceEntity>), sqlx::Error> {
         let (limit, offset) = param.page.get_limit_offset();
 
         let name = param.name.as_ref().map(|value| format!("%{value}%"));
@@ -104,7 +104,7 @@ impl DatasourceRepo {
         .await?;
 
         if total < offset {
-            return Ok((total.max(0) as u64, Vec::new()));
+            return Ok((total, Vec::new()));
         }
 
         let rows = sqlx::query_as!(
@@ -126,14 +126,14 @@ impl DatasourceRepo {
         .fetch_all(pool)
         .await?;
 
-        Ok((total.max(0) as u64, rows))
+        Ok((total, rows))
     }
 
     pub async fn list_permitted(
         pool: &DbPool,
         param: DatasourceListParam,
         op_user_id: i64,
-    ) -> Result<(u64, Vec<DatasourceEntity>), sqlx::Error> {
+    ) -> Result<(i64, Vec<DatasourceEntity>), sqlx::Error> {
         let (limit, offset) = param.page.get_limit_offset();
 
         let name = param.name.as_ref().map(|value| format!("%{value}%"));
@@ -162,7 +162,7 @@ impl DatasourceRepo {
         .await?;
 
         if total < offset {
-            return Ok((total.max(0) as u64, Vec::new()));
+            return Ok((total, Vec::new()));
         }
 
         let rows = sqlx::query_as!(
@@ -186,7 +186,7 @@ impl DatasourceRepo {
         .fetch_all(pool)
         .await?;
 
-        Ok((total.max(0) as u64, rows))
+        Ok((total, rows))
     }
 
     pub async fn create(

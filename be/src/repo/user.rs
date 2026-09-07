@@ -41,7 +41,7 @@ impl UserRepo {
         Ok(rows.into_iter().map(|v| (v.id, v)).collect())
     }
 
-    pub async fn list(pool: &DbPool, param: UserListParam) -> Result<(u64, Vec<UserEntity>), sqlx::Error> {
+    pub async fn list(pool: &DbPool, param: UserListParam) -> Result<(i64, Vec<UserEntity>), sqlx::Error> {
         let name = param.name.as_ref().map(|value| format!("%{value}%"));
         let (limit, offset) = param.page.get_limit_offset();
 
@@ -59,7 +59,7 @@ impl UserRepo {
         ).fetch_one(pool).await?;
 
         if total < offset {
-            return Ok((total.max(0) as u64, Vec::new()));
+            return Ok((total, Vec::new()));
         }
 
         let rows = sqlx::query_as!(
@@ -80,7 +80,7 @@ impl UserRepo {
             offset,
         ).fetch_all(pool).await?;
         
-        Ok((total.max(0) as u64, rows))
+        Ok((total, rows))
     }
     
     pub async fn delete(pool: &DbPool, id: i64, op_user_id: i64) -> Result<bool, sqlx::Error> {
