@@ -10,6 +10,7 @@ use crate::{
     api::*, common::{error::ErrorCode, state::ApiState}, repo::{EntityRepo, RuntimeDatasource},
 };
 
+use crate::model::TableEntity;
 use query::build_list_plan;
 use value::validate_columns;
 
@@ -18,10 +19,12 @@ pub struct EntityService;
 impl EntityService {
     pub async fn list(
         state: &ApiState,
-        datasource_name: String,
-        table_name: String,
+        table: TableEntity,
         param: EntityListParam,
     ) -> Result<PageResult<Value>, ApiError> {
+        let datasource_name = table.datasource_name.clone();
+        let table_name = table.table_name.clone();
+
         let source: Option<Arc<RuntimeDatasource>> = state
             .registry
             .get(datasource_name.clone())
@@ -30,12 +33,9 @@ impl EntityService {
         let Some(source) = source else {
             return Err(ErrorCode::datasource_name_not_found(datasource_name).into_error());
         };
-        let Some(resolved) = source.resolve_table(&table_name) else {
-            return Err(ErrorCode::table_name_not_found(datasource_name, table_name).into_error());
-        };
 
         let plan = build_list_plan(&resolved, &param)?;
-        let (total, items) = EntityRepo::new(resolved.pool, resolved.table)
+        let (total, items) = EntityRepo::new(&source.pool, resolved.table)
             .list(plan)
             .await
             .map_err(Into::<ApiError>::into)?;

@@ -2,17 +2,17 @@ use anyhow::Context;
 use corers::axum::ApiError;
 
 use crate::{api::EntityListParam, model::{BindValue, EntityListFilter, EntityListPlan, embed::{FilterOperator, OrderByConfig}}, repo::ResolvedTable};
-
+use crate::service::DatasourceTableConfig;
 use super::value::normalize_value;
 
 pub fn build_list_plan(
-    resolved: &ResolvedTable,
+    config: &DatasourceTableConfig,
     param: &EntityListParam,
 ) -> Result<EntityListPlan, ApiError> {
     let mut unknown: Vec<_> = param
         .condition
         .keys()
-        .filter(|name| !resolved.table.columns.contains_key(*name))
+        .filter(|name| !config.columns.contains_key(*name))
         .cloned()
         .collect();
     if !unknown.is_empty() {
@@ -23,8 +23,7 @@ pub fn build_list_plan(
         )));
     }
 
-    let mut filters = resolved
-        .table
+    let mut filters = config
         .table_config
         .select_fixed_where
         .iter()
@@ -55,11 +54,10 @@ pub fn build_list_plan(
         if raw_value.is_null() || raw_value.as_str().is_some_and(str::is_empty) {
             continue;
         }
-        let column = resolved
-            .table.columns
+        let column = config.columns
             .get(name)
             .with_context(|| "Unexpect error: missing column {name}")?;
-        let mut value = normalize_value(raw_value, column, &resolved.datasource, false)?;
+        let mut value = normalize_value(raw_value, column, &config.datasource_config, false)?;
         let operator = if column.is_numeric() || column.is_bool() {
             FilterOperator::Equal
         } else {

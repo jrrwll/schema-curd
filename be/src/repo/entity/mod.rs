@@ -1,6 +1,7 @@
 mod build;
 mod mysql;
 
+use std::collections::HashMap;
 use anyhow::Context;
 use serde_json::Value;
 use sqlx::{MySql, Postgres, mysql::MySqlRow, types::Json};
@@ -12,10 +13,14 @@ use crate::{
 
 use build::*;
 use mysql::mysql_row_to_value;
+use crate::model::embed::{ColumnConfig, TableConfig};
 
 pub struct EntityRepo<'a> {
     pool: &'a RuntimePool,
     table: &'a RuntimeTableConfig,
+    table_name: String,
+    table_config: TableConfig,
+    columns: HashMap<String, ColumnConfig>,
 }
 
 impl<'a> EntityRepo<'a> {
