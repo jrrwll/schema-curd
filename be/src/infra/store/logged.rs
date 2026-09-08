@@ -70,6 +70,12 @@ impl KvStore for LoggedKvStore {
         result
     }
 
+    async fn delete(&self, key: String) -> Result<()> {
+        let result = self.inner.delete(key).await;
+        self.log_error("delete", &result);
+        result
+    }
+
     async fn delete_prefix(&self, prefix: String) -> Result<()> {
         let result = self.inner.delete_prefix(prefix).await;
         self.log_error("delete_prefix", &result);

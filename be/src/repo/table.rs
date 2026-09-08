@@ -49,6 +49,9 @@ impl TableRepo {
         ids: Vec<i64>,
         datasource_names: Vec<String>,
     ) -> Result<Vec<TableEntity>, sqlx::Error> {
+        if ids.is_empty() && datasource_names.is_empty() {
+            return Ok(Vec::new());
+        }
         let mut query_builder = QueryBuilder::new(
             "
             select id, created_at, updated_at, deleted_at, created_by, updated_by

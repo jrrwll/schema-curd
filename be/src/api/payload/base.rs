@@ -9,6 +9,12 @@ pub struct IdParam {
     pub id: i64,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate)]
+pub struct IdsParam {
+    #[validate(length(min = 1, max = 100))]
+    pub ids: Vec<i64>,
+}
+
 #[derive(Debug, Default, Deserialize, Serialize, Validate)]
 pub struct PageParam {
     #[validate(range(min = 1, max = "MAX_PAGE_NO"))]

@@ -19,13 +19,15 @@ impl TableService {
             .map_err(ApiError::unknown)?;
         let mut items: Vec<TableListResult> = items.into_iter().map(Into::into).collect();
 
-        if datasource_role.is_some() {
-            items.iter_mut().for_each(|item| item.effective_role = datasource_role.into());
+        if let Some(role) = datasource_role && role.implies(RoleEnum::Write) {
+            items.iter_mut().for_each(|item| item.effective_role = Some(role).into());
         } else {
             let table_roles =  AccessService::load_table_roles(state, op_user_id, datasource_name).await?;
             for item in &mut items {
                 if let Some(role) = table_roles.get(&item.id) {
                     item.effective_role = Some(*role).into();
+                } else if let Some(role) = datasource_role {
+                    item.effective_role = Some(role).into();
                 }
             }
         }

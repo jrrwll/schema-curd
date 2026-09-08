@@ -68,6 +68,13 @@ impl KvStore for KevyKvStore {
         })
     }
 
+    async fn delete(&self, key: String) -> Result<()> {
+        self.store.with(|store| {
+            store.del(&vec![key.as_bytes()]);
+        });
+        Ok(())
+    }
+
     async fn delete_prefix(&self, prefix: String) -> Result<()> {
         self.store.with(|store| {
             let keys = store

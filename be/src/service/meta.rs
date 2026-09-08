@@ -30,13 +30,11 @@ impl MetaService {
         let mut configs: HashMap<String, Arc<RuntimeDatasourceDetailConfig>> =
             HashMap::with_capacity(databases.len());
         for database in databases {
-            let Some(tables) = table_map.get(&database.name) else {
-                continue;
-            };
+            let tables = table_map.get(&database.name).cloned().unwrap_or_default();
 
             let tables: HashMap<String, RuntimeTableConfig> = tables
                 .into_iter()
-                .map(|table| convert_meta_table(table.clone()))
+                .map(convert_meta_table)
                 .collect::<Result<_, _>>()?;
 
             let datasource_config = RuntimeDatasourceConfig {

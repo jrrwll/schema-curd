@@ -94,6 +94,15 @@ impl KvStore for RedisKvStore {
         Ok(moved == 1)
     }
 
+    async fn delete(&self, key: String) -> Result<()> {
+        let mut connection = self.connection.clone();
+        redis::cmd("del")
+            .arg(key_name(&key))
+            .query_async::<i64>(&mut connection)
+            .await?;
+        Ok(())
+    }
+
     async fn delete_prefix(&self, prefix: String) -> Result<()> {
         let mut connection = self.connection.clone();
         let pattern = format!("{}*", key_name(&prefix));

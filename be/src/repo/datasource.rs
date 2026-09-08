@@ -43,6 +43,9 @@ impl DatasourceRepo {
     }
 
     pub async fn get_multi(pool: &DbPool, ids: Vec<i64>, names: Vec<String>) -> Result<HashMap<String, DatasourceEntity>, sqlx::Error> {
+        if ids.is_empty() && names.is_empty() {
+            return Ok(HashMap::new());
+        }
         let mut query_builder = QueryBuilder::new(
             "
             select id, created_at, updated_at, deleted_at, created_by, updated_by
@@ -60,7 +63,7 @@ impl DatasourceRepo {
             query_builder.push(")");
         }
         if !names.is_empty() {
-            query_builder.push(" and datasource_name in (");
+            query_builder.push(" and name in (");
             let mut separated = query_builder.separated(", ");
             for name in names {
                 separated.push_bind(name);
@@ -280,7 +283,7 @@ impl DatasourceRepo {
             ",
             deleted_at,
             op_user_id,
-            datasource_name.clone(),
+            id,
         )
         .execute(&mut *transaction)
         .await?;

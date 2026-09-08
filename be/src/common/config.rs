@@ -15,6 +15,7 @@ use serde::Deserialize;
 use validator::Validate;
 
 use crate::common::constants::{DEFAULT_DATABASE_URL, DEFAULT_LISTEN_PORT, MIN_JWT_SECRET_LENGTH};
+use crate::common::global::init_jwt_provider;
 
 #[derive(Deserialize, Validate)]
 pub struct AppConfig {
@@ -59,7 +60,12 @@ impl AppConfig {
         format!("{}:{}", self.listen_host, self.listen_port)
     }
 
-    pub fn init_tracing(&self) {
+    pub fn init(&self) {
+        init_jwt_provider(self);
+        self.init_tracing();
+    }
+
+    fn init_tracing(&self) {
         // export RUST_LOG=debug
         let env_filter = EnvFilter::try_from_default_env()
             .unwrap_or_else(|_| self.log_level.as_deref().unwrap_or("debug").into());

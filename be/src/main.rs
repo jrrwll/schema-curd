@@ -12,7 +12,7 @@ async fn main() -> anyhow::Result<()> {
     let cfg = AppConfig::parse()?;
     cfg.validate()?;
     let addr = cfg.build_addr();
-    cfg.init_tracing();
+    cfg.init();
 
     let state = ApiState::new(cfg).await?;
 

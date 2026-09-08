@@ -29,6 +29,8 @@ pub trait KvStore: Send + Sync {
         ttl_seconds: u64,
     ) -> Result<bool>;
 
+    async fn delete(&self, key: String) -> Result<()>;
+
     async fn delete_prefix(&self, prefix: String) -> Result<()>;
 
     async fn increment_below(&self, key: String, limit: u64, ttl_seconds: u64) -> Result<bool>;

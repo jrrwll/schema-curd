@@ -74,7 +74,7 @@ impl RoleService {
     }
 
     pub async fn revoke(state: &ApiState, id: i64, op_user_id: i64) -> Result<(), ApiError> {
-        Self::get_role(state, id).await?;
+        let role_entity = Self::get_role(state, id).await?.user_id;
 
         let found = RoleRepo::revoke(&state.pool, id, op_user_id)
             .await

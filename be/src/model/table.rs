@@ -38,7 +38,7 @@ pub struct UpdateTable {
     pub columns_config: String,
 }
 
-#[derive(Clone, sqlx::FromRow)]
+#[derive(Clone, Default, sqlx::FromRow)]
 pub struct MetaTable {
     pub id: i64,
     pub name: String,

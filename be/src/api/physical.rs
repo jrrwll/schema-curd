@@ -52,7 +52,14 @@ async fn list_table_physical(
     ValidatedJson(param): ValidatedJson<PhysicalTableListParam>,
 ) -> Result<ApiResult<Vec<PhysicalTableListResult>>, ApiError> {
     let datasource_name = param.datasource;
+    let op_user_id = identity.user_id;
 
+    AccessService::require_datasource_role(
+        &state,
+        op_user_id,
+        Either::Right(datasource_name.clone()),
+        RoleEnum::Write,
+    ).await?;
     PhysicalService::list_table(&state, datasource_name)
         .await
         .map(Into::into)
@@ -106,16 +113,22 @@ async fn refresh_column_physical(
 
 async fn permit_column_physical(state: &ApiState, param: PhysicalColumnListParam, op_user_id: i64) -> Result<(String, String), ApiError> {
     let (datasource_name, table_name) = if let Some(table_id) = param.table_id {
-        let (table, _) = AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Read).await?;
+        let (table, _) = AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Write).await?;
 
         (table.datasource_name, table.table_name)
     } else if let Some(table_name) = param.table {
         let Some(datasource_name) = param.datasource else {
             return Err(ApiError::Validation("Param datasource is required since table is passed".to_owned()));
         };
-        let (table, _) = AccessService::require_table_role(&state, op_user_id, Either::Right((datasource_name, table_name)), RoleEnum::Read).await?;
+        // only permit datasource
+        AccessService::require_datasource_role(
+            &state,
+            op_user_id,
+            Either::Right(datasource_name.clone()),
+            RoleEnum::Write,
+        ).await?;
 
-        (table.datasource_name, table.table_name)
+        (datasource_name, table_name)
     } else {
         return Err(ApiError::Validation("Param table_id or table is required".to_owned()));
     };

@@ -41,6 +41,34 @@ pub struct RoleGrantParam {
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleBatchGrantUserParam {
+    pub resource_type: ResourceTypeEnum,
+    pub resource_id: i64,
+    #[validate(length(min = 1, max=100))]
+    pub items: Vec<RoleBatchGrantUserItem>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleBatchGrantUserItem {
+    pub user_id: i64,
+    pub role: RoleEnum,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleBatchGrantResourceParam {
+    pub user_id: i64,
+    pub resource_type: ResourceTypeEnum,
+    #[validate(length(min = 1, max=100))]
+    pub items: Vec<RoleBatchGrantResourceItem>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleBatchGrantResourceItem {
+    pub resource_id: i64,
+    pub role: RoleEnum,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct RoleUpdateParam {
     pub id: i64,
     pub role: RoleEnum,
