@@ -151,7 +151,7 @@ impl AccessService {
             .await
             .map_err(ApiError::unknown)?;
         let Some(user) = user else {
-            return Err(ApiError::Unauthorized);
+            return Err(ApiError::Forbidden("User not found".to_owned()));
         };
         if user.disabled {
             return Err(forbidden());

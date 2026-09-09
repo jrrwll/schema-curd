@@ -18,3 +18,4 @@ Thumbs.db
 .netlify
 .codegraph
 .claude
+rustc-ice-*.txt

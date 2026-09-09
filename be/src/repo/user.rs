@@ -24,7 +24,7 @@ impl UserRepo {
     pub async fn get_multi(pool: &DbPool, ids: Vec<i64>) -> Result<HashMap<i64, UserEntity>, sqlx::Error> {
         let mut query_builder = QueryBuilder::new(
             "
-            select id, created_at, updated_at, deleted_at, created_by, updated_by, name, password, display_name, disabled as `disabled: _`, super_admin as `super_admin: _`
+            select id, created_at, updated_at, deleted_at, created_by, updated_by, name, password, display_name, disabled, super_admin
             from sys_user
             where deleted_at = 0 and id in (
             "

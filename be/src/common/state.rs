@@ -20,13 +20,13 @@ impl ApiState {
     pub async fn new(config: AppConfig) -> anyhow::Result<Self> {
         let pool = connect_database(&config.database_url).await?;
         let kv_store = open_kv_store(config.kv_store_url.as_deref()).await?;
-        let registry = MetaService::load_registry_configs(&pool).await?;
+        let registry_configs = MetaService::load_registry_configs(&pool).await?;
 
         Ok(Self {
             config: Arc::new(config),
             pool: Arc::new(pool),
             kv_store,
-            registry: Arc::new(PhysicalRegistry::new(registry)),
+            registry: Arc::new(PhysicalRegistry::new(registry_configs)),
         })
     }
 }

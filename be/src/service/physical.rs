@@ -4,10 +4,7 @@ use std::{
 };
 
 use corers::axum::ApiError;
-use sqlx::{
-    mysql::{MySqlConnectOptions, MySqlPoolOptions},
-    postgres::{PgConnectOptions, PgPoolOptions},
-};
+use sqlx::{mysql::{MySqlConnectOptions, MySqlPoolOptions}, postgres::{PgConnectOptions, PgPoolOptions}, Row};
 use tracing::{error, info};
 
 use crate::{
@@ -232,20 +229,22 @@ impl DatasourceConnectOptions {
             .connect_with(options)
             .await
             .map_err(|source| connection_error("mysql", started_at, source))?;
-        let version = sqlx::query_scalar::<_, String>("select version()")
+        let (version, database) = sqlx::query("select version() as version, database() as `database`")
             .fetch_one(&pool)
             .await
+            .map(|row| (row.get::<String, _>("version"), row.get::<String, _>("database")))
             .map_err(|source| connection_error("mysql", started_at, source))?;
         pool.close().await;
 
         let cost_ms = started_at.elapsed().as_millis() as u64;
         info!(
             database_type = "mysql",
-            version, cost_ms, "datasource connection test succeeded"
+            version, database, cost_ms, "datasource connection test succeeded"
         );
         Ok(TestDatasourceResult {
             database_type: "mysql".to_owned(),
             version,
+            database,
             cost_ms,
         })
     }
@@ -264,7 +263,9 @@ impl DatasourceConnectOptions {
             .connect_with(options)
             .await
             .map_err(|source| connection_error("postgresql", started_at, source))?;
-        let version = sqlx::query_scalar::<_, String>("show server_version")
+        let (version, database): (String, String) = sqlx::query_as("
+            select current_setting('server_version') as version, current_database() as database
+            ")
             .fetch_one(&pool)
             .await
             .map_err(|source| connection_error("postgresql", started_at, source))?;
@@ -273,11 +274,12 @@ impl DatasourceConnectOptions {
         let cost_ms = started_at.elapsed().as_millis() as u64;
         info!(
             database_type = "postgresql",
-            version, cost_ms, "datasource connection test succeeded"
+            version, database, cost_ms, "datasource connection test succeeded"
         );
         Ok(TestDatasourceResult {
             database_type: "postgresql".to_owned(),
             version,
+            database,
             cost_ms,
         })
     }

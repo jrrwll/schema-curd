@@ -18,6 +18,7 @@ pub struct TestDatasourceParam {
 pub struct TestDatasourceResult {
     pub database_type: String,
     pub version: String,
+    pub database: String,
     pub cost_ms: u64,
 }
 

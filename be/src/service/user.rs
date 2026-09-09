@@ -14,7 +14,7 @@ impl UserService {
     pub async fn profile(state: &ApiState, id: i64) -> Result<ProfileResult, ApiError> {
         let user = Self::get_user(state, id).await?;
         if user.disabled {
-            return Err(ApiError::Unauthorized);
+            return Err(ApiError::Forbidden("User is disabled".to_owned()));
         }
 
         Ok(ProfileResult{

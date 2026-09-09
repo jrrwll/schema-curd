@@ -1,8 +1,10 @@
 use std::collections::HashMap;
-
+use corers::axum::ApiError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
+use crate::model::embed::ColumnConfig;
+use crate::model::TableEntity;
+use crate::util::deserialize_config;
 // #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 // #[serde(try_from = "i32")]
 // #[serde(into = "i32")]
@@ -11,25 +13,6 @@ use serde_json::Value;
 //     Draft = 0,
 //     Enabled = 1,
 //     Disabled = 2,
-// }
-
-// impl From<TableStatusEnum> for i32 {
-//     fn from(value: TableStatusEnum) -> Self {
-//         value as i32
-//     }
-// }
-
-// impl TryFrom<i32> for TableStatusEnum {
-//     type Error = String;
-
-//     fn try_from(value: i32) -> Result<Self, Self::Error> {
-//         match value {
-//             0 => Ok(Self::Draft),
-//             1 => Ok(Self::Enabled),
-//             2 => Ok(Self::Disabled),
-//             _ => Err(format!("Invalid table status {value}")),
-//         }
-//     }
 // }
 
 macro_rules! define_filter_operator {
@@ -84,4 +67,28 @@ pub struct TableConfig {
     pub insert_fixed_values: HashMap<String, Value>,
     pub select_fixed_where: Vec<FixedWhereConfig>,
     pub default_order_by: Vec<OrderByConfig>,
+}
+
+#[derive(Debug)]
+pub struct TableDetailConfig {
+    pub table_name: String,
+    pub table_config: TableConfig,
+    pub columns: HashMap<String, ColumnConfig>,
+}
+
+impl TryFrom<TableEntity> for TableDetailConfig {
+    type Error = ApiError;
+
+    fn try_from(value: TableEntity) -> Result<Self, Self::Error> {
+        let table_config: TableConfig = deserialize_config(value.table_config.clone())?;
+        let columns_config: Vec<ColumnConfig> = deserialize_config(value.columns_config.clone())?;
+        let columns = columns_config.into_iter()
+            .map(|c| (c.name.clone(), c)).collect::<HashMap<_, _>>();
+        let table_name = value.table_name.clone();
+        Ok(Self {
+            table_name,
+            table_config,
+            columns,
+        })
+    }
 }

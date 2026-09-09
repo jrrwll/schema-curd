@@ -3,13 +3,14 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use anyhow::Context;
 use moka::future::Cache;
 use tokio::sync::RwLock;
-
+use crate::model::embed::DatasourceConfig;
 use crate::repo::RuntimePool;
 
 pub struct RuntimeDatasourceConfig {
     pub url: String,
     pub username: String,
     pub password: String,
+    pub config: DatasourceConfig,
 }
 
 pub struct RuntimeDatasource {

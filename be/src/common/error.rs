@@ -5,14 +5,6 @@ use thiserror::Error;
 #[derive(Debug, Error, AsRefStr, EnumString)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
-    #[error("Invalid username or password")]
-    invalid_credentials,
-
-    #[error("Access token is invalid or expired")]
-    invalid_access_token,
-
-    #[error("Refresh token is invalid or expired")]
-    invalid_refresh_token,
 
     #[error("Operate failed")]
     operate_failed,

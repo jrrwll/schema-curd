@@ -39,7 +39,7 @@ async fn list(
         RoleEnum::Read,
     )
     .await?;
-    EntityService::list(&state, table.datasource_name, table.table_name, param).await.map(Into::into)
+    EntityService::list(&state, table, param).await.map(Into::into)
 }
 
 async fn create(
@@ -57,7 +57,7 @@ async fn create(
         RoleEnum::Write,
     )
     .await?;
-    EntityService::create(&state, table.datasource_name, table.table_name, param).await?;
+    EntityService::create(&state, table, param).await?;
     Ok(ApiResult::ok(None))
 }
 
@@ -76,5 +76,5 @@ async fn update(
         RoleEnum::Write,
     )
     .await?;
-    EntityService::update(&state, table.datasource_name, table.table_name, param).await.map(Into::into)
+    EntityService::update(&state, table, param).await.map(Into::into)
 }

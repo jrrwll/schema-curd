@@ -8,18 +8,19 @@ use crate::{
         BindValue,
         embed::{ColumnConfig, DataType, DatasourceConfig},
     },
-    repo::ResolvedTable,
     util::is_pattern_match,
 };
+use crate::model::embed::TableDetailConfig;
 
 pub fn validate_columns(
-    resolved: &ResolvedTable,
+    config: &TableDetailConfig,
+    datasource_config: &DatasourceConfig,
     values: &HashMap<String, Value>,
     creating: bool,
 ) -> Result<HashMap<String, BindValue>, ApiError> {
     let mut unknown: Vec<_> = values
         .keys()
-        .filter(|name| !resolved.table.columns.contains_key(*name))
+        .filter(|name| !config.columns.contains_key(*name))
         .cloned()
         .collect();
     if !unknown.is_empty() {
@@ -31,9 +32,8 @@ pub fn validate_columns(
     }
 
     let mut result = HashMap::new();
-    for (column_name, column) in &resolved.table.columns {
-        let is_primary_key = resolved
-            .table
+    for (column_name, column) in &config.columns {
+        let is_primary_key = config
             .table_config
             .primary_keys
             .contains(&column_name);
@@ -61,7 +61,7 @@ pub fn validate_columns(
             }
             result.insert(column_name.clone(), BindValue::Null);
         } else {
-            let normalized_value = normalize_value(value, column, resolved.datasource, true)?;
+            let normalized_value = normalize_value(value, column, datasource_config, true)?;
             result.insert(column_name.clone(), normalized_value);
         }
     }

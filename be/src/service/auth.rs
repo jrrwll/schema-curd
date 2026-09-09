@@ -3,7 +3,6 @@ use corers::axum::ApiError;
 use corers::{encode_base64_url_safe, rng_bytes, sha256hex};
 
 use crate::api::{AccessClaimPublic, AuthTokenResult, LoginParam, RefreshParam};
-use crate::common::error::ErrorCode;
 use crate::common::global::get_jwt_provider;
 use crate::common::state::ApiState;
 use crate::repo::AuthRepo;
@@ -17,15 +16,15 @@ impl AuthService {
     pub async fn parse_user_id_from_access_token(access_token: &str) -> Result<i64, ApiError> {
         let claims: AccessClaimPublic = get_jwt_provider()
             .decode_token(access_token)
-            .map_err(|_| ErrorCode::invalid_access_token.into_error())?;
+            .map_err(|_| invalid_access_token())?;
 
         if claims.token_type != "access" {
-            return Err(ErrorCode::invalid_access_token.into_error());
+            return Err(invalid_access_token());
         }
         let user_id = claims
             .sub
             .parse()
-            .map_err(|_| ErrorCode::invalid_access_token.into_error())?;
+            .map_err(|_| invalid_access_token())?;
         Ok(user_id)
     }
 
@@ -33,12 +32,12 @@ impl AuthService {
         let user = AuthRepo::find_user(&state.pool, &param.name)
             .await
             .map_err(ApiError::unknown)?
-            .ok_or_else(|| ErrorCode::invalid_credentials.into_error())?;
+            .ok_or_else(|| invalid_credentials())?;
         if user.disabled {
             return Err(ApiError::Forbidden("User is disabled".to_owned()));
         }
         if !verify_password(param.password, user.password).await? {
-            return Err(ErrorCode::invalid_credentials.into_error());
+            return Err(invalid_credentials());
         }
 
         let user_id = user.id;
@@ -61,7 +60,7 @@ impl AuthService {
         param: RefreshParam,
     ) -> Result<AuthTokenResult, ApiError> {
         let user_id = parse_user_id_from_refresh_token(&param.refresh_token)
-            .ok_or_else(|| ErrorCode::invalid_refresh_token.into_error())?;
+            .ok_or_else(|| invalid_refresh_token())?;
         let old_token_hash = sha256hex(&param.refresh_token);
 
         let access_token = issue_access_token(user_id)?;
@@ -74,7 +73,7 @@ impl AuthService {
         )
         .await
         .map_err(ApiError::unknown)?
-        .ok_or_else(|| ErrorCode::invalid_refresh_token.into_error())?;
+        .ok_or_else(|| invalid_refresh_token())?;
 
         // check user status
         let is_active = AuthRepo::is_user_active(&state.pool, user_id)
@@ -84,7 +83,7 @@ impl AuthService {
             RefreshTokenCacheService::remove(state.kv_store.clone(), user_id)
                 .await
                 .map_err(ApiError::unknown)?;
-            return Err(ErrorCode::invalid_refresh_token.into_error());
+            return Err(invalid_refresh_token());
         }
         Ok(AuthTokenResult {
             access_token,
@@ -112,4 +111,16 @@ fn parse_user_id_from_refresh_token(value: &str) -> Option<i64> {
     let (user_id, random) = value.split_once('.')?;
     let user_id = user_id.parse().ok()?;
     (user_id > 0 && !random.is_empty() && !random.contains('.')).then_some(user_id)
+}
+
+fn invalid_access_token() -> ApiError {
+    ApiError::Unauthorized("Access token is invalid or expired".to_owned())
+}
+
+fn invalid_refresh_token() -> ApiError {
+    ApiError::Unauthorized("Refresh token is invalid or expired".to_owned())
+}
+
+fn invalid_credentials() -> ApiError {
+    ApiError::Unauthorized("Invalid username or password".to_owned())
 }

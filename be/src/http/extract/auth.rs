@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::state::ApiState;
 use crate::service::AuthService;
-use crate::{common::error::ErrorCode, service::AccessService};
+use crate::{service::AccessService};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthIdentity {
@@ -21,14 +21,14 @@ impl FromRequestParts<ApiState> for Authenticated {
 
     async fn from_request_parts(parts: &mut Parts, _: &ApiState) -> Result<Self, Self::Rejection> {
         let Some(token) = parts.headers.get(header::AUTHORIZATION) else {
-            return Err(ApiError::Unauthorized);
+            return Err(invalid_access_token());
         };
         let token = token
             .to_str()
-            .map_err(|_| ErrorCode::invalid_access_token.into_error())?
+            .map_err(|_| invalid_access_token())?
             .strip_prefix("Bearer ")
             .filter(|v| !v.is_empty())
-            .ok_or_else(|| ErrorCode::invalid_access_token.into_error())?;
+            .ok_or_else(|| invalid_access_token())?;
 
         let user_id = AuthService::parse_user_id_from_access_token(token).await?;
         Ok(Self(AuthIdentity { user_id }))
@@ -49,4 +49,8 @@ impl FromRequestParts<ApiState> for CurrentSuperAdmin {
         AccessService::require_super_admin(state, identity.user_id).await?;
         Ok(Self(identity))
     }
+}
+
+fn invalid_access_token() -> ApiError {
+    ApiError::Unauthorized("Access token is invalid or expired".to_owned())
 }

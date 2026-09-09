@@ -1,12 +1,13 @@
 use anyhow::Context;
 use corers::axum::ApiError;
 
-use crate::{api::EntityListParam, model::{BindValue, EntityListFilter, EntityListPlan, embed::{FilterOperator, OrderByConfig}}, repo::ResolvedTable};
-use crate::service::DatasourceTableConfig;
+use crate::{api::EntityListParam, model::{BindValue, EntityListFilter, EntityListPlan, embed::{FilterOperator, OrderByConfig}}};
+use crate::model::embed::{DatasourceConfig, TableDetailConfig};
 use super::value::normalize_value;
 
 pub fn build_list_plan(
-    config: &DatasourceTableConfig,
+    config: &TableDetailConfig,
+    datasource_config: &DatasourceConfig,
     param: &EntityListParam,
 ) -> Result<EntityListPlan, ApiError> {
     let mut unknown: Vec<_> = param
@@ -57,7 +58,7 @@ pub fn build_list_plan(
         let column = config.columns
             .get(name)
             .with_context(|| "Unexpect error: missing column {name}")?;
-        let mut value = normalize_value(raw_value, column, &config.datasource_config, false)?;
+        let mut value = normalize_value(raw_value, column, datasource_config, false)?;
         let operator = if column.is_numeric() || column.is_bool() {
             FilterOperator::Equal
         } else {
@@ -74,7 +75,7 @@ pub fn build_list_plan(
         });
     }
 
-    let order_by = build_order_by(param, resolved)?;
+    let order_by = build_order_by(param, config)?;
 
     Ok(EntityListPlan {
         filters,
@@ -84,10 +85,9 @@ pub fn build_list_plan(
     })
 }
 
-fn build_order_by(param: &EntityListParam, resolved: &ResolvedTable) -> Result<Vec<OrderByConfig>, ApiError> {
+fn build_order_by(param: &EntityListParam, config: &TableDetailConfig) -> Result<Vec<OrderByConfig>, ApiError> {
     let order_by = if let Some(order_by) = &param.order_by {
-        let column = resolved
-            .table.columns
+        let column = config.columns
             .get(&order_by.sort)
             .filter(|column| column.sortable)
             .ok_or_else(|| ApiError::Validation("Field does not support sorting".to_owned()))?;
@@ -95,11 +95,10 @@ fn build_order_by(param: &EntityListParam, resolved: &ResolvedTable) -> Result<V
             sort: column.name.clone(),
             desc: order_by.desc,
         }]
-    } else if !resolved.table.table_config.default_order_by.is_empty() {
-        resolved.table.table_config.default_order_by.clone()
+    } else if !config.table_config.default_order_by.is_empty() {
+        config.table_config.default_order_by.clone()
     } else {
-        resolved
-            .table.table_config
+        config.table_config
             .primary_keys.iter().map(|column| OrderByConfig {
                 sort: column.clone(),
                 desc: true,

@@ -1,30 +1,26 @@
 mod build;
 mod mysql;
 
-use std::collections::HashMap;
 use anyhow::Context;
 use serde_json::Value;
 use sqlx::{MySql, Postgres, mysql::MySqlRow, types::Json};
 
 use crate::{
     model::{BindValue, EntityListPlan},
-    repo::{RuntimePool, RuntimeTableConfig},
+    repo::{RuntimePool},
 };
 
 use build::*;
 use mysql::mysql_row_to_value;
-use crate::model::embed::{ColumnConfig, TableConfig};
+use crate::model::embed::{TableDetailConfig};
 
 pub struct EntityRepo<'a> {
     pool: &'a RuntimePool,
-    table: &'a RuntimeTableConfig,
-    table_name: String,
-    table_config: TableConfig,
-    columns: HashMap<String, ColumnConfig>,
+    table: &'a TableDetailConfig,
 }
 
 impl<'a> EntityRepo<'a> {
-    pub fn new(pool: &'a RuntimePool, table: &'a RuntimeTableConfig) -> Self {
+    pub fn new(pool: &'a RuntimePool, table: &'a TableDetailConfig) -> Self {
         Self { pool, table }
     }
 
@@ -78,7 +74,7 @@ impl<'a> EntityRepo<'a> {
         match self.pool {
             RuntimePool::MySql(pool) => {
                 let (mut count, mut query) =
-                    build_list_queries::<MySql>(self.table, plan, '`', None, false)?;
+                    build_list_queries::<MySql>(self.table, plan, '`', None)?;
                 let total: i64 = count
                     .build_query_scalar()
                     .fetch_one(pool)
@@ -100,8 +96,7 @@ impl<'a> EntityRepo<'a> {
                     self.table,
                     plan,
                     '"',
-                    Some("jsonb_build_object"),
-                    true,
+                    Some("jsonb_build_object")
                 )?;
                 let total: i64 = count
                     .build_query_scalar()

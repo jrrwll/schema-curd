@@ -3,8 +3,8 @@ use sqlx::{Database, QueryBuilder};
 
 use crate::{
     model::{BindValue, EntityListFilter, EntityListPlan},
-    repo::RuntimeTableConfig,
 };
+use crate::model::embed::TableDetailConfig;
 
 pub fn build_create_query<DB: Database>(
     table: &str,
@@ -71,11 +71,10 @@ where
 }
 
 pub fn build_list_queries<DB: Database>(
-    table: &RuntimeTableConfig,
+    table: &TableDetailConfig,
     plan: EntityListPlan,
     quote: char,
     json_function: Option<&str>,
-    bind_pagination: bool,
 ) -> anyhow::Result<(QueryBuilder<DB>, QueryBuilder<DB>)>
 where
     for<'q> Option<String>: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
@@ -125,18 +124,9 @@ where
     let limit = i64::from(plan.page_size);
     let offset =
         i64::try_from(u64::from(plan.page_no - 1) * u64::from(plan.page_size)).unwrap_or(i64::MAX);
-    query.push(" limit ");
-    if bind_pagination {
-        query.push_bind(limit);
-    } else {
-        query.push(limit);
-    }
-    query.push(" offset ");
-    if bind_pagination {
-        query.push_bind(offset);
-    } else {
-        query.push(offset);
-    }
+    // limit ? maybe not supported
+    query.push(" limit ").push(limit);
+    query.push(" offset ").push(offset);
     Ok((count, query))
 }
 
