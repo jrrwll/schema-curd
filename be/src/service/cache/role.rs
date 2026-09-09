@@ -12,6 +12,14 @@ pub struct RoleCacheService;
 
 impl RoleCacheService {
 
+    pub async fn remove_all_roles(
+        kv_store: Arc<dyn KvStore>,
+        user_id: i64,
+    ) -> anyhow::Result<()> {
+        let key = format!("{KEY_PREFIX}{user_id}:");
+        kv_store.delete_prefix(key).await
+    }
+
     // datasource_info.id -> role
     pub async fn save_datasource_roles(
         kv_store: Arc<dyn KvStore>,

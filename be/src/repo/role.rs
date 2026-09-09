@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sqlx::QueryBuilder;
+use sqlx::{QueryBuilder, Row};
 
 use crate::{
     api::RoleListParam,
@@ -99,6 +99,32 @@ impl RoleRepo {
         Ok(rows)
     }
 
+    pub async fn get_user_id_and_count(
+        pool: &DbPool,
+        ids: Vec<i64>,
+    ) -> Result<Vec<(i64, i64)>, sqlx::Error> {
+        let mut query_builder = QueryBuilder::new(
+            "
+            select user_id, count(1) as cnt from sys_user_role
+            where deleted_at = 0 and id in (
+            ",
+        );
+        let mut separated = query_builder.separated(", ");
+        for id in &ids {
+            separated.push_bind(*id);
+        }
+        query_builder.push(")");
+        query_builder.push(" group by user_id");
+
+        let rows = query_builder.build()
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .map(|row|(row.get("user_id"), row.get("cnt")))
+            .collect();
+        Ok(rows)
+    }
+
     pub async fn list(
         pool: &DbPool,
         param: RoleListParam,
@@ -158,6 +184,31 @@ impl RoleRepo {
         Ok(())
     }
 
+    pub async fn batch_grant(
+        pool: &DbPool,
+        entities: Vec<CreateUserRole>,
+        op_user_id: i64,
+    ) -> Result<(), sqlx::Error> {
+        if entities.is_empty() {
+            return Ok(());
+        }
+        let mut query_builder = QueryBuilder::new(
+            "
+            insert into sys_user_role (user_id, role, resource_type, resource_id, created_by)
+            ",
+        );
+        query_builder.push_values(entities, |mut build, entity| {
+            build
+                .push_bind(entity.user_id)
+                .push_bind(entity.role)
+                .push_bind(entity.resource_type)
+                .push_bind(entity.resource_id)
+                .push_bind(op_user_id);
+        });
+        query_builder.build().execute(pool).await?;
+        Ok(())
+    }
+
     pub async fn revoke(pool: &DbPool, id: i64, op_user_id: i64) -> Result<bool, sqlx::Error> {
         let deleted_at = Utc::now().timestamp_millis();
         let affected = sqlx::query!(
@@ -173,6 +224,34 @@ impl RoleRepo {
         .execute(pool)
         .await
         .map(|result| result.rows_affected())?;
+        Ok(affected > 0)
+    }
+
+    pub async fn batch_revoke(
+        pool: &DbPool,
+        ids: Vec<i64>,
+        op_user_id: i64,
+    ) -> Result<bool, sqlx::Error> {
+        let deleted_at = Utc::now().timestamp_millis();
+        let mut query_builder = QueryBuilder::new(
+            "
+            update sys_user_role
+            set deleted_at = ?, deleted_by = ?
+            where deleted_at = 0 and id in (
+            ",
+        );
+        let mut separated = query_builder.separated(", ");
+        for id in &ids {
+            separated.push_bind(*id);
+        }
+        query_builder.push(")");
+        let affected = query_builder
+            .build()
+            .bind(deleted_at)
+            .bind(op_user_id)
+            .execute(pool)
+            .await
+            .map(|result| result.rows_affected())?;
         Ok(affected > 0)
     }
 

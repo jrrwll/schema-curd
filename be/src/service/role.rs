@@ -8,6 +8,8 @@ use crate::model::{CreateUserRole, RoleEntity, UserEntity};
 use crate::repo::UserRepo;
 use crate::util::format_datetime;
 use crate::{api::*, common::state::ApiState, repo::RoleRepo};
+use crate::model::embed::{ResourceTypeEnum, RoleEnum};
+use crate::service::{AccessService, RoleCacheService};
 
 pub struct RoleService;
 
@@ -73,14 +75,59 @@ impl RoleService {
         Ok(())
     }
 
-    pub async fn revoke(state: &ApiState, id: i64, op_user_id: i64) -> Result<(), ApiError> {
-        let role_entity = Self::get_role(state, id).await?.user_id;
+    pub async fn batch_grant_user(
+        state: &ApiState,
+        param: RoleBatchGrantUserParam,
+        op_user_id: i64,
+    ) -> Result<(), ApiError> {
+        let resource_type = param.resource_type.to_string();
+        let resource_id = param.resource_id;
+        todo!()
+    }
 
+    pub async fn batch_grant_resource(
+        state: &ApiState,
+        param: RoleBatchGrantResourceParam,
+        op_user_id: i64,
+    ) -> Result<(), ApiError> {
+        let resource_type = param.resource_type.to_string();
+        let user_id = param.user_id;
+        todo!()
+    }
+
+    pub async fn revoke(state: &ApiState, id: i64, op_user_id: i64) -> Result<(), ApiError> {
+        let role_entity = Self::get_role(state, id).await?;
+        
         let found = RoleRepo::revoke(&state.pool, id, op_user_id)
             .await
             .map_err(ApiError::unknown)?;
         if !found {
             return Err(ErrorCode::role_not_found(id).into_error());
+        }
+        // clear role cache
+        let user_id = role_entity.user_id;
+        RoleCacheService::remove_all_roles(state.kv_store.clone(), user_id).await?;
+        Ok(())
+    }
+
+    pub async fn batch_revoke(state: &ApiState, ids: Vec<i64>, op_user_id: i64) -> Result<(), ApiError> {
+        let users = RoleRepo::get_user_id_and_count(&state.pool, ids.clone()).await
+            .map_err(ApiError::unknown)?;
+        let record_cnt = users.iter().map(|(_, c)| *c).sum::<i64>() as usize;
+        if record_cnt != ids.len() {
+            return Err(ErrorCode::roles_not_found.into_error())
+        }
+        let user_ids: Vec<i64> = users.into_iter().map(|(user_id, _)| user_id).collect();
+
+        let found = RoleRepo::batch_revoke(&state.pool, ids, op_user_id)
+            .await
+            .map_err(ApiError::unknown)?;
+        if !found {
+            return Err(ErrorCode::roles_not_found.into_error());
+        }
+        // clear role cache
+        for user_id in user_ids {
+            RoleCacheService::remove_all_roles(state.kv_store.clone(), user_id).await?;
         }
         Ok(())
     }

@@ -26,6 +26,9 @@ pub enum ErrorCode {
     #[error("Role not found: {0}")]
     role_not_found(i64),
 
+    #[error("Roles not found")]
+    roles_not_found,
+
     #[error("Role already existing: {0} {1}")]
     role_already_existing(String, i64),
 
