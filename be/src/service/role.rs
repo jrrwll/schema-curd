@@ -8,8 +8,7 @@ use crate::model::{CreateUserRole, RoleEntity, UserEntity};
 use crate::repo::UserRepo;
 use crate::util::format_datetime;
 use crate::{api::*, common::state::ApiState, repo::RoleRepo};
-use crate::model::embed::{ResourceTypeEnum, RoleEnum};
-use crate::service::{AccessService, RoleCacheService};
+use crate::service::{RoleCacheService};
 
 pub struct RoleService;
 
@@ -82,6 +81,24 @@ impl RoleService {
     ) -> Result<(), ApiError> {
         let resource_type = param.resource_type.to_string();
         let resource_id = param.resource_id;
+
+        // check uk
+        let user_id_role_map: HashMap<i64, String> = param.items.iter()
+            .map(|item|(item.user_id, item.role.to_string())).collect();
+        if user_id_role_map.len() != param.items.len() {
+            return Err(ApiError::Validation("duplicate role ids".to_owned()));
+        }
+        let user_ids = user_id_role_map.keys().cloned().collect::<Vec<_>>();
+
+        let user_roles = RoleRepo::get_by_resource(&state.pool, resource_type.clone(), resource_id, user_ids)
+            .await.map_err(ApiError::unknown)?;
+
+        let entities = param.items.into_iter().map(|item| CreateUserRole {
+            user_id: item.user_id,
+            role: item.role.to_string(),
+            resource_type: resource_type.clone(),
+            resource_id,
+        }).collect::<Vec<_>>();
         todo!()
     }
 
@@ -97,7 +114,7 @@ impl RoleService {
 
     pub async fn revoke(state: &ApiState, id: i64, op_user_id: i64) -> Result<(), ApiError> {
         let role_entity = Self::get_role(state, id).await?;
-        
+
         let found = RoleRepo::revoke(&state.pool, id, op_user_id)
             .await
             .map_err(ApiError::unknown)?;

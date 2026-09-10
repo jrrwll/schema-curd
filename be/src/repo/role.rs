@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use chrono::Utc;
 use sqlx::{QueryBuilder, Row};
 
@@ -99,6 +100,36 @@ impl RoleRepo {
         Ok(rows)
     }
 
+    pub async fn get_by_resource(
+        pool: &DbPool,
+        resource_type: String,
+        resource_id: i64,
+        user_ids: Vec<i64>,
+    ) -> Result<HashMap<i64, String>, sqlx::Error> {
+        let mut query_builder = QueryBuilder::new(
+            "
+            select user_id, role from sys_user_role
+            where deleted_at = 0
+            ",
+        );
+        query_builder.push(" and resource_type = ").push_bind(resource_type);
+        query_builder.push(" and resource_id = ").push_bind(resource_id);
+
+        query_builder.push(" and user_ids in (");
+        let mut separated = query_builder.separated(", ");
+        for id in &user_ids {
+            separated.push_bind(*id);
+        }
+        query_builder.push(")");
+
+        let rows = query_builder.build()
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .map(|row|(row.get("user_id"), row.get("role")))
+            .collect();
+        Ok(rows)
+    }
     pub async fn get_user_id_and_count(
         pool: &DbPool,
         ids: Vec<i64>,
