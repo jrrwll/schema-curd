@@ -16,9 +16,7 @@ async fn main() -> anyhow::Result<()> {
 
     let state = ApiState::new(cfg).await?;
 
-    let app = Router::new()
-        .nest("/api", build_api_routers())
-        .with_state(state);
+    let app = Router::new().nest("/api", build_api_routers()).with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&addr)
         .await

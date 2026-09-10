@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{api::{EffectiveRoleEnum, PageParam}, model::embed::{ColumnConfig, TableConfig}};
+use crate::{
+    api::{EffectiveRoleEnum, PageParam},
+    model::embed::{ColumnConfig, TableConfig},
+};
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct TableListParam {

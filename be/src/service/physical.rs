@@ -4,7 +4,11 @@ use std::{
 };
 
 use corers::axum::ApiError;
-use sqlx::{mysql::{MySqlConnectOptions, MySqlPoolOptions}, postgres::{PgConnectOptions, PgPoolOptions}, Row};
+use sqlx::{
+    Row,
+    mysql::{MySqlConnectOptions, MySqlPoolOptions},
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
 use tracing::{error, info};
 
 use crate::{
@@ -18,22 +22,14 @@ const PHYSICAL_TABLE_QUERY_LIMIT: usize = PHYSICAL_TABLE_LIMIT + 1;
 pub struct PhysicalService;
 
 impl PhysicalService {
-    pub async fn test_connection(
-        _: &ApiState,
-        param: TestDatasourceParam,
-    ) -> Result<TestDatasourceResult, ApiError> {
-        DatasourceConnectOptions::new(
-            &param.url,
-            &param.username,
-            &param.password.unwrap_or_default(),
-        )?
-        .test_connection()
-        .await
+    pub async fn test_connection(_: &ApiState, param: TestDatasourceParam) -> Result<TestDatasourceResult, ApiError> {
+        DatasourceConnectOptions::new(&param.url, &param.username, &param.password.unwrap_or_default())?
+            .test_connection()
+            .await
     }
 
     pub async fn list_table(
-        state: &ApiState,
-        datasource_name: String,
+        state: &ApiState, datasource_name: String,
     ) -> Result<Vec<PhysicalTableListResult>, ApiError> {
         let tables = MetaCacheService::get_tables(state.kv_store.clone(), &datasource_name)
             .await
@@ -43,8 +39,7 @@ impl PhysicalService {
     }
 
     pub async fn refresh_table(
-        state: &ApiState,
-        datasource_name: String,
+        state: &ApiState, datasource_name: String,
     ) -> Result<Vec<PhysicalTableListResult>, ApiError> {
         let tables = Self::query_tables(state, datasource_name.clone()).await?;
         MetaCacheService::save_tables(state.kv_store.clone(), &datasource_name, &tables)
@@ -53,43 +48,29 @@ impl PhysicalService {
         Ok(tables)
     }
 
-    async fn query_tables(
-        state: &ApiState,
-        datasource_name: String,
-    ) -> Result<Vec<PhysicalTableListResult>, ApiError> {
-        let source = state
-            .registry
-            .get(datasource_name.clone())
-            .await
-            .map_err(|e| {
-                error!(
-                    datasource = datasource_name.clone(),
-                    error = ?e,
-                    "Datasource connect failed: {e}"
-                );
-                ErrorCode::datasource_connect_failed(datasource_name.clone()).into_error()
-            })?;
+    async fn query_tables(state: &ApiState, datasource_name: String) -> Result<Vec<PhysicalTableListResult>, ApiError> {
+        let source = state.registry.get(datasource_name.clone()).await.map_err(|e| {
+            error!(
+                datasource = datasource_name.clone(),
+                error = ?e,
+                "Datasource connect failed: {e}"
+            );
+            ErrorCode::datasource_connect_failed(datasource_name.clone()).into_error()
+        })?;
         let Some(source) = source else {
             return Err(ErrorCode::datasource_name_not_found(datasource_name).into_error());
         };
 
         let started_at = Instant::now();
-        info!(
-            datasource = datasource_name.clone(),
-            "querying physical tables"
-        );
-        let tables = source
-            .pool
-            .list_tables(PHYSICAL_TABLE_QUERY_LIMIT)
-            .await
-            .map_err(|e| {
-                error!(
-                    datasource = datasource_name.clone(),
-                    error = ?e,
-                    "Datasource connect failed: {e}"
-                );
-                ErrorCode::datasource_connect_failed(datasource_name.clone()).into_error()
-            })?;
+        info!(datasource = datasource_name.clone(), "querying physical tables");
+        let tables = source.pool.list_tables(PHYSICAL_TABLE_QUERY_LIMIT).await.map_err(|e| {
+            error!(
+                datasource = datasource_name.clone(),
+                error = ?e,
+                "Datasource connect failed: {e}"
+            );
+            ErrorCode::datasource_connect_failed(datasource_name.clone()).into_error()
+        })?;
         info!(
             datasource = datasource_name.clone(),
             table_count = tables.len(),
@@ -100,63 +81,43 @@ impl PhysicalService {
     }
 
     pub async fn list_column(
-        state: &ApiState,
-        datasource_name: String,
-        table_name: String,
+        state: &ApiState, datasource_name: String, table_name: String,
     ) -> Result<Vec<PhysicalColumnListResult>, ApiError> {
-        let columns =
-            MetaCacheService::get_columns(state.kv_store.clone(), &datasource_name, &table_name)
-                .await
-                .map_err(ApiError::unknown)?
-                .unwrap_or_default();
+        let columns = MetaCacheService::get_columns(state.kv_store.clone(), &datasource_name, &table_name)
+            .await
+            .map_err(ApiError::unknown)?
+            .unwrap_or_default();
         Ok(columns)
     }
 
     pub async fn refresh_column(
-        state: &ApiState,
-        datasource_name: String,
-        table_name: String,
+        state: &ApiState, datasource_name: String, table_name: String,
     ) -> Result<Vec<PhysicalColumnListResult>, ApiError> {
         let columns = Self::query_columns(state, datasource_name.clone(), &table_name).await?;
-        MetaCacheService::save_columns(
-            state.kv_store.clone(),
-            &datasource_name,
-            &table_name,
-            &columns,
-        )
-        .await
-        .map_err(ApiError::unknown)?;
+        MetaCacheService::save_columns(state.kv_store.clone(), &datasource_name, &table_name, &columns)
+            .await
+            .map_err(ApiError::unknown)?;
         Ok(columns)
     }
 
     async fn query_columns(
-        state: &ApiState,
-        datasource_name: String,
-        table_name: &str,
+        state: &ApiState, datasource_name: String, table_name: &str,
     ) -> Result<Vec<PhysicalColumnListResult>, ApiError> {
-        let source = state
-            .registry
-            .get(datasource_name.clone())
-            .await
-            .map_err(|e| {
-                error!(
-                    datasource = datasource_name.clone(),
-                    table = table_name.to_string(),
-                    error = ?e,
-                    "Datasource connect failed: {e}"
-                );
-                ErrorCode::datasource_connect_failed(datasource_name.clone()).into_error()
-            })?;
+        let source = state.registry.get(datasource_name.clone()).await.map_err(|e| {
+            error!(
+                datasource = datasource_name.clone(),
+                table = table_name.to_string(),
+                error = ?e,
+                "Datasource connect failed: {e}"
+            );
+            ErrorCode::datasource_connect_failed(datasource_name.clone()).into_error()
+        })?;
         let Some(source) = source else {
             return Err(ErrorCode::datasource_name_not_found(datasource_name).into_error());
         };
 
         let started_at = Instant::now();
-        info!(
-            datasource = datasource_name.clone(),
-            table = table_name.to_string(),
-            "querying physical columns"
-        );
+        info!(datasource = datasource_name.clone(), table = table_name.to_string(), "querying physical columns");
         let columns = source.pool.list_columns(table_name).await.map_err(|e| {
             error!(
                 datasource_name = datasource_name.clone(),
@@ -187,28 +148,21 @@ impl DatasourceConnectOptions {
             let options = MySqlConnectOptions::from_str(url)
                 .map_err(|_| ApiError::Validation("URL must be a valid MySQL URL".to_owned()))?;
             if options.get_database().is_none_or(str::is_empty) {
-                return Err(ApiError::Validation(
-                    "URL must include a database name".to_owned(),
-                ));
+                return Err(ApiError::Validation("URL must include a database name".to_owned()));
             }
             let options = RuntimePool::connect_options_mysql(options, username, password);
             return Ok(Self::MySql(options));
         }
         if url.starts_with("postgres://") || url.starts_with("postgresql://") {
-            let options = PgConnectOptions::from_str(url).map_err(|_| {
-                ApiError::Validation("URL must be a valid PostgreSQL URL".to_owned())
-            })?;
+            let options = PgConnectOptions::from_str(url)
+                .map_err(|_| ApiError::Validation("URL must be a valid PostgreSQL URL".to_owned()))?;
             if options.get_database().is_none_or(str::is_empty) {
-                return Err(ApiError::Validation(
-                    "URL must include a database name".to_owned(),
-                ));
+                return Err(ApiError::Validation("URL must include a database name".to_owned()));
             }
             let options = RuntimePool::connect_options_pg(options, username, password);
             return Ok(DatasourceConnectOptions::Postgres(options));
         }
-        Err(ApiError::Validation(
-            "URL must use the mysql, postgres, or postgresql protocol".to_owned(),
-        ))
+        Err(ApiError::Validation("URL must use the mysql, postgres, or postgresql protocol".to_owned()))
     }
 
     pub async fn test_connection(self) -> Result<TestDatasourceResult, ApiError> {
@@ -218,9 +172,7 @@ impl DatasourceConnectOptions {
         }
     }
 
-    async fn test_connection_mysql(
-        options: MySqlConnectOptions,
-    ) -> Result<TestDatasourceResult, ApiError> {
+    async fn test_connection_mysql(options: MySqlConnectOptions) -> Result<TestDatasourceResult, ApiError> {
         let started_at = Instant::now();
         info!(database_type = "mysql", "testing datasource connection");
         let pool = MySqlPoolOptions::new()
@@ -237,51 +189,32 @@ impl DatasourceConnectOptions {
         pool.close().await;
 
         let cost_ms = started_at.elapsed().as_millis() as u64;
-        info!(
-            database_type = "mysql",
-            version, database, cost_ms, "datasource connection test succeeded"
-        );
-        Ok(TestDatasourceResult {
-            database_type: "mysql".to_owned(),
-            version,
-            database,
-            cost_ms,
-        })
+        info!(database_type = "mysql", version, database, cost_ms, "datasource connection test succeeded");
+        Ok(TestDatasourceResult { database_type: "mysql".to_owned(), version, database, cost_ms })
     }
 
-    async fn test_connection_pg(
-        options: PgConnectOptions,
-    ) -> Result<TestDatasourceResult, ApiError> {
+    async fn test_connection_pg(options: PgConnectOptions) -> Result<TestDatasourceResult, ApiError> {
         let started_at = Instant::now();
-        info!(
-            database_type = "postgresql",
-            "testing datasource connection"
-        );
+        info!(database_type = "postgresql", "testing datasource connection");
         let pool = PgPoolOptions::new()
             .max_connections(1)
             .acquire_timeout(Duration::from_secs(5))
             .connect_with(options)
             .await
             .map_err(|source| connection_error("postgresql", started_at, source))?;
-        let (version, database): (String, String) = sqlx::query_as("
+        let (version, database): (String, String) = sqlx::query_as(
+            "
             select current_setting('server_version') as version, current_database() as database
-            ")
-            .fetch_one(&pool)
-            .await
-            .map_err(|source| connection_error("postgresql", started_at, source))?;
+            ",
+        )
+        .fetch_one(&pool)
+        .await
+        .map_err(|source| connection_error("postgresql", started_at, source))?;
         pool.close().await;
 
         let cost_ms = started_at.elapsed().as_millis() as u64;
-        info!(
-            database_type = "postgresql",
-            version, database, cost_ms, "datasource connection test succeeded"
-        );
-        Ok(TestDatasourceResult {
-            database_type: "postgresql".to_owned(),
-            version,
-            database,
-            cost_ms,
-        })
+        info!(database_type = "postgresql", version, database, cost_ms, "datasource connection test succeeded");
+        Ok(TestDatasourceResult { database_type: "postgresql".to_owned(), version, database, cost_ms })
     }
 }
 

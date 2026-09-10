@@ -7,7 +7,13 @@ use axum::{
 use corers::api::{ApiPageResult, ApiResult};
 use corers::axum::{ApiError, ValidatedJson, ValidatedQuery};
 
-use crate::{common::state::ApiState, http::extract::Authenticated, model::embed::RoleEnum, service::{AccessService, DatasourceService}, util::Either};
+use crate::{
+    common::state::ApiState,
+    http::extract::Authenticated,
+    model::embed::RoleEnum,
+    service::{AccessService, DatasourceService},
+    util::Either,
+};
 
 use super::*;
 
@@ -25,8 +31,7 @@ pub fn get_routes() -> Router<ApiState> {
 }
 
 async fn list(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<DatasourceListParam>,
 ) -> Result<ApiPageResult<DatasourceListResult>, ApiError> {
     let op_user_id = identity.user_id;
@@ -36,8 +41,7 @@ async fn list(
 }
 
 async fn detail(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedQuery(param): ValidatedQuery<IdParam>,
 ) -> Result<ApiResult<DatasourceDetailResult>, ApiError> {
     let id = param.id;
@@ -48,8 +52,7 @@ async fn detail(
 }
 
 async fn create(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<DatasourceCreateParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
@@ -60,8 +63,7 @@ async fn create(
 }
 
 async fn update(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<DatasourceUpdateParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let id = param.id;
@@ -73,9 +75,7 @@ async fn update(
 }
 
 async fn delete(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
-    ValidatedJson(param): ValidatedJson<IdParam>,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated, ValidatedJson(param): ValidatedJson<IdParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let id = param.id;
     let op_user_id = identity.user_id;

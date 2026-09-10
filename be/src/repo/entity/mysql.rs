@@ -10,10 +10,7 @@ use sqlx::{
 
 use crate::model::embed::{ColumnConfig, DataType};
 
-pub fn mysql_row_to_value(
-    row: &MySqlRow,
-    columns: &HashMap<String, ColumnConfig>,
-) -> anyhow::Result<Value> {
+pub fn mysql_row_to_value(row: &MySqlRow, columns: &HashMap<String, ColumnConfig>) -> anyhow::Result<Value> {
     let mut object = Map::with_capacity(columns.len());
 
     for (index, (column_name, column)) in columns.iter().enumerate() {
@@ -24,11 +21,7 @@ pub fn mysql_row_to_value(
     Ok(Value::Object(object))
 }
 
-fn mysql_column_value(
-    row: &MySqlRow,
-    index: usize,
-    column: &ColumnConfig,
-) -> anyhow::Result<Value> {
+fn mysql_column_value(row: &MySqlRow, index: usize, column: &ColumnConfig) -> anyhow::Result<Value> {
     if row.try_get_raw(index)?.is_null() {
         return Ok(Value::Null);
     }
@@ -48,10 +41,7 @@ fn mysql_column_value(
             } else {
                 row.try_get::<f64, _>(index)?
             };
-            Value::Number(
-                Number::from_f64(value)
-                    .ok_or_else(|| anyhow::anyhow!("Float value is not finite"))?,
-            )
+            Value::Number(Number::from_f64(value).ok_or_else(|| anyhow::anyhow!("Float value is not finite"))?)
         }
         DataType::Bool => Value::Bool(row.try_get::<bool, _>(index)?),
     })

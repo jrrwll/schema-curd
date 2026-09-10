@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use crate::model::TableEntity;
+use crate::model::embed::ColumnConfig;
+use crate::util::deserialize_config;
 use corers::axum::ApiError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::model::embed::ColumnConfig;
-use crate::model::TableEntity;
-use crate::util::deserialize_config;
+use std::collections::HashMap;
 // #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 // #[serde(try_from = "i32")]
 // #[serde(into = "i32")]
@@ -82,13 +82,11 @@ impl TryFrom<TableEntity> for TableDetailConfig {
     fn try_from(value: TableEntity) -> Result<Self, Self::Error> {
         let table_config: TableConfig = deserialize_config(value.table_config.clone())?;
         let columns_config: Vec<ColumnConfig> = deserialize_config(value.columns_config.clone())?;
-        let columns = columns_config.into_iter()
-            .map(|c| (c.name.clone(), c)).collect::<HashMap<_, _>>();
+        let columns = columns_config
+            .into_iter()
+            .map(|c| (c.name.clone(), c))
+            .collect::<HashMap<_, _>>();
         let table_name = value.table_name.clone();
-        Ok(Self {
-            table_name,
-            table_config,
-            columns,
-        })
+        Ok(Self { table_name, table_config, columns })
     }
 }

@@ -44,7 +44,7 @@ pub struct RoleGrantParam {
 pub struct RoleBatchGrantUserParam {
     pub resource_type: ResourceTypeEnum,
     pub resource_id: i64,
-    #[validate(length(min = 1, max=100))]
+    #[validate(length(min = 1, max = 100))]
     pub items: Vec<RoleBatchGrantUserItem>,
 }
 
@@ -58,7 +58,7 @@ pub struct RoleBatchGrantUserItem {
 pub struct RoleBatchGrantResourceParam {
     pub user_id: i64,
     pub resource_type: ResourceTypeEnum,
-    #[validate(length(min = 1, max=100))]
+    #[validate(length(min = 1, max = 100))]
     pub items: Vec<RoleBatchGrantResourceItem>,
 }
 

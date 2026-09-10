@@ -24,10 +24,9 @@ pub struct PageParam {
 }
 
 impl PageParam {
-
     pub fn get_limit_offset(&self) -> (i64, i64) {
         let limit = i64::from(self.page_size);
         let offset = i64::from(self.page_no - 1) * limit;
-        return (limit ,offset);
+        return (limit, offset);
     }
 }

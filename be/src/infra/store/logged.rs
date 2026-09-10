@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use tracing::error;
-use anyhow::Result;
 
 use super::KvStore;
 
@@ -49,22 +49,12 @@ impl KvStore for LoggedKvStore {
     }
 
     async fn move_if_value(
-        &self,
-        source_key: String,
-        expected_value: Vec<u8>,
-        destination_key: String,
-        destination_value: Vec<u8>,
+        &self, source_key: String, expected_value: Vec<u8>, destination_key: String, destination_value: Vec<u8>,
         ttl_seconds: u64,
     ) -> Result<bool> {
         let result = self
             .inner
-            .move_if_value(
-                source_key,
-                expected_value,
-                destination_key,
-                destination_value,
-                ttl_seconds,
-            )
+            .move_if_value(source_key, expected_value, destination_key, destination_value, ttl_seconds)
             .await;
         self.log_error("move_if_value", &result);
         result

@@ -21,10 +21,7 @@ impl AuthService {
         if claims.token_type != "access" {
             return Err(invalid_access_token());
         }
-        let user_id = claims
-            .sub
-            .parse()
-            .map_err(|_| invalid_access_token())?;
+        let user_id = claims.sub.parse().map_err(|_| invalid_access_token())?;
         Ok(user_id)
     }
 
@@ -49,31 +46,19 @@ impl AuthService {
             .await
             .map_err(ApiError::unknown)?;
 
-        Ok(AuthTokenResult {
-            access_token,
-            refresh_token,
-        })
+        Ok(AuthTokenResult { access_token, refresh_token })
     }
 
-    pub async fn refresh(
-        state: &ApiState,
-        param: RefreshParam,
-    ) -> Result<AuthTokenResult, ApiError> {
-        let user_id = parse_user_id_from_refresh_token(&param.refresh_token)
-            .ok_or_else(|| invalid_refresh_token())?;
+    pub async fn refresh(state: &ApiState, param: RefreshParam) -> Result<AuthTokenResult, ApiError> {
+        let user_id = parse_user_id_from_refresh_token(&param.refresh_token).ok_or_else(|| invalid_refresh_token())?;
         let old_token_hash = sha256hex(&param.refresh_token);
 
         let access_token = issue_access_token(user_id)?;
         let (refresh_token, new_token_hash) = issue_refresh_token(user_id);
-        RefreshTokenCacheService::rotate(
-            state.kv_store.clone(),
-            user_id,
-            old_token_hash,
-            new_token_hash,
-        )
-        .await
-        .map_err(ApiError::unknown)?
-        .ok_or_else(|| invalid_refresh_token())?;
+        RefreshTokenCacheService::rotate(state.kv_store.clone(), user_id, old_token_hash, new_token_hash)
+            .await
+            .map_err(ApiError::unknown)?
+            .ok_or_else(|| invalid_refresh_token())?;
 
         // check user status
         let is_active = AuthRepo::is_user_active(&state.pool, user_id)
@@ -85,10 +70,7 @@ impl AuthService {
                 .map_err(ApiError::unknown)?;
             return Err(invalid_refresh_token());
         }
-        Ok(AuthTokenResult {
-            access_token,
-            refresh_token,
-        })
+        Ok(AuthTokenResult { access_token, refresh_token })
     }
 }
 

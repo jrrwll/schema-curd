@@ -6,8 +6,8 @@ use corers::axum::ApiError;
 use serde::{Deserialize, Serialize};
 
 use crate::common::state::ApiState;
+use crate::service::AccessService;
 use crate::service::AuthService;
-use crate::{service::AccessService};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthIdentity {
@@ -40,10 +40,7 @@ pub struct CurrentSuperAdmin(pub AuthIdentity);
 impl FromRequestParts<ApiState> for CurrentSuperAdmin {
     type Rejection = ApiError;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &ApiState,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &ApiState) -> Result<Self, Self::Rejection> {
         let Authenticated(identity) = Authenticated::from_request_parts(parts, state).await?;
 
         AccessService::require_super_admin(state, identity.user_id).await?;

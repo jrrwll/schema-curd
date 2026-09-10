@@ -1,15 +1,12 @@
 use crate::api::DiscoveryTableListParam;
 use crate::common::constants::MAX_DISCOVERY_LIST_COUNT;
-use crate::{
-    api::DiscoveryDatasourceListParam, common::db::DbPool, model::DiscoveryDatasourceTable,
-};
+use crate::{api::DiscoveryDatasourceListParam, common::db::DbPool, model::DiscoveryDatasourceTable};
 
 pub struct DiscoveryRepo;
 
 impl DiscoveryRepo {
     pub async fn list_all_datasources(
-        pool: &DbPool,
-        param: DiscoveryDatasourceListParam,
+        pool: &DbPool, param: DiscoveryDatasourceListParam,
     ) -> Result<Vec<DiscoveryDatasourceTable>, sqlx::Error> {
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
         sqlx::query_as!(
@@ -23,7 +20,8 @@ impl DiscoveryRepo {
             order by updated_at desc
             limit ?
             ",
-            keyword.clone(), keyword,
+            keyword.clone(),
+            keyword,
             MAX_DISCOVERY_LIST_COUNT,
         )
         .fetch_all(pool)
@@ -31,9 +29,7 @@ impl DiscoveryRepo {
     }
 
     pub async fn list_datasources(
-        pool: &DbPool,
-        param: DiscoveryDatasourceListParam,
-        user_id: i64,
+        pool: &DbPool, param: DiscoveryDatasourceListParam, user_id: i64,
     ) -> Result<Vec<DiscoveryDatasourceTable>, sqlx::Error> {
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
         sqlx::query_as!(
@@ -74,9 +70,7 @@ impl DiscoveryRepo {
     }
 
     pub async fn list_all_tables(
-        pool: &DbPool,
-        datasource_name: String,
-        param: DiscoveryTableListParam,
+        pool: &DbPool, datasource_name: String, param: DiscoveryTableListParam,
     ) -> Result<Vec<DiscoveryDatasourceTable>, sqlx::Error> {
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
         sqlx::query_as!(
@@ -90,7 +84,9 @@ impl DiscoveryRepo {
                 and coalesce(lower(display_name) like lower(?), true)
             limit ?
             ",
-            datasource_name, keyword.clone(), keyword,
+            datasource_name,
+            keyword.clone(),
+            keyword,
             MAX_DISCOVERY_LIST_COUNT,
         )
         .fetch_all(pool)
@@ -98,10 +94,7 @@ impl DiscoveryRepo {
     }
 
     pub async fn list_tables(
-        pool: &DbPool,
-        datasource_name: String,
-        param: DiscoveryTableListParam,
-        user_id: i64,
+        pool: &DbPool, datasource_name: String, param: DiscoveryTableListParam, user_id: i64,
     ) -> Result<Vec<DiscoveryDatasourceTable>, sqlx::Error> {
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
         sqlx::query_as!(
@@ -119,9 +112,13 @@ impl DiscoveryRepo {
                 and ti.datasource_name = ?
             limit ?
             ",
-            user_id, keyword.clone(), keyword, datasource_name,
+            user_id,
+            keyword.clone(),
+            keyword,
+            datasource_name,
             MAX_DISCOVERY_LIST_COUNT,
-        ).fetch_all(pool)
+        )
+        .fetch_all(pool)
         .await
     }
 }

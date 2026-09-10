@@ -26,9 +26,7 @@ impl TableRepo {
     }
 
     pub async fn get_by_name(
-        pool: &DbPool,
-        name: String,
-        datasource_name: String,
+        pool: &DbPool, name: String, datasource_name: String,
     ) -> Result<Option<TableEntity>, sqlx::Error> {
         sqlx::query_as!(
             TableEntity,
@@ -45,9 +43,7 @@ impl TableRepo {
     }
 
     pub async fn get_multi_by_ids_or_datasource_names(
-        pool: &DbPool,
-        ids: Vec<i64>,
-        datasource_names: Vec<String>,
+        pool: &DbPool, ids: Vec<i64>, datasource_names: Vec<String>,
     ) -> Result<Vec<TableEntity>, sqlx::Error> {
         if ids.is_empty() && datasource_names.is_empty() {
             return Ok(Vec::new());
@@ -77,10 +73,7 @@ impl TableRepo {
             query_builder.push(")");
         }
 
-        let rows = query_builder
-            .build_query_as::<TableEntity>()
-            .fetch_all(pool)
-            .await?;
+        let rows = query_builder.build_query_as::<TableEntity>().fetch_all(pool).await?;
 
         // let mut grouped: HashMap<String, Vec<TableEntity>> = HashMap::new();
         // for row in rows {
@@ -91,18 +84,12 @@ impl TableRepo {
         Ok(rows)
     }
 
-    pub async fn list(
-        pool: &DbPool,
-        param: TableListParam,
-    ) -> Result<(i64, Vec<TableEntity>), sqlx::Error> {
+    pub async fn list(pool: &DbPool, param: TableListParam) -> Result<(i64, Vec<TableEntity>), sqlx::Error> {
         let (limit, offset) = param.page.get_limit_offset();
 
         let datasource_name = param.datasource;
         let name = param.name.as_ref().map(|value| format!("%{value}%"));
-        let display_name = param
-            .display_name
-            .as_ref()
-            .map(|value| format!("%{value}%"));
+        let display_name = param.display_name.as_ref().map(|value| format!("%{value}%"));
         let disabled = param.disabled;
 
         let total: i64 = sqlx::query_scalar!(
@@ -147,11 +134,7 @@ impl TableRepo {
         Ok((total, rows))
     }
 
-    pub async fn create(
-        pool: &DbPool,
-        entity: CreateTable,
-        op_user_id: i64,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn create(pool: &DbPool, entity: CreateTable, op_user_id: i64) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "
             insert into table_info (created_by, updated_by, datasource_name, name, display_name, table_name, table_config, columns_config)
@@ -169,11 +152,7 @@ impl TableRepo {
         Ok(())
     }
 
-    pub async fn update(
-        pool: &DbPool,
-        entity: UpdateTable,
-        op_user_id: i64,
-    ) -> Result<bool, sqlx::Error> {
+    pub async fn update(pool: &DbPool, entity: UpdateTable, op_user_id: i64) -> Result<bool, sqlx::Error> {
         let affected = sqlx::query!(
             "
             update table_info
@@ -185,7 +164,9 @@ impl TableRepo {
             entity.columns_config,
             op_user_id,
             entity.id,
-        ).execute(pool).await
+        )
+        .execute(pool)
+        .await
         .map(|result| result.rows_affected())?;
         Ok(affected > 0)
     }

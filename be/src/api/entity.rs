@@ -25,56 +25,38 @@ pub fn get_routes() -> Router<ApiState> {
 }
 
 async fn list(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<EntityListParam>,
 ) -> Result<ApiPageResult<Value>, ApiError> {
     let table_id = param.table_id;
     let op_user_id = identity.user_id;
 
-    let (table, _) = AccessService::require_table_role(
-        &state,
-        op_user_id,
-        Either::Left(table_id),
-        RoleEnum::Read,
-    )
-    .await?;
+    let (table, _) =
+        AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Read).await?;
     EntityService::list(&state, table, param).await.map(Into::into)
 }
 
 async fn create(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<EntityCreateParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let table_id = param.table_id;
     let op_user_id = identity.user_id;
 
-    let (table, _) = AccessService::require_table_role(
-        &state,
-        op_user_id,
-        Either::Left(table_id),
-        RoleEnum::Write,
-    )
-    .await?;
+    let (table, _) =
+        AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Write).await?;
     EntityService::create(&state, table, param).await?;
     Ok(ApiResult::ok(None))
 }
 
 async fn update(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<EntityUpdateParam>,
 ) -> Result<ApiResult<EntityUpdateResult>, ApiError> {
     let table_id = param.table_id;
     let op_user_id = identity.user_id;
 
-    let (table, _) = AccessService::require_table_role(
-        &state,
-        op_user_id,
-        Either::Left(table_id),
-        RoleEnum::Write,
-    )
-    .await?;
+    let (table, _) =
+        AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Write).await?;
     EntityService::update(&state, table, param).await.map(Into::into)
 }

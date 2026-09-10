@@ -8,14 +8,8 @@ pub use sqlite::*;
 #[cfg(feature = "sqlite")]
 mod sqlite;
 
-#[cfg(not(any(
-    feature = "sqlite",
-    feature = "mysql",
-)))]
+#[cfg(not(any(feature = "sqlite", feature = "mysql",)))]
 compile_error!("one system database feature must be enabled");
 
-#[cfg(all(
-    feature = "sqlite",
-    feature = "mysql",
-))]
+#[cfg(all(feature = "sqlite", feature = "mysql",))]
 compile_error!("only one system database feature can be enabled");

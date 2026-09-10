@@ -48,9 +48,7 @@ impl<L, R> Either<L, R> {
     }
 
     pub fn map_left<F, U>(self, f: F) -> Either<U, R>
-    where
-        F: FnOnce(L) -> U,
-    {
+    where F: FnOnce(L) -> U {
         match self {
             Either::Left(l) => Either::Left(f(l)),
             Either::Right(r) => Either::Right(r),
@@ -58,9 +56,7 @@ impl<L, R> Either<L, R> {
     }
 
     pub fn map_right<F, U>(self, f: F) -> Either<L, U>
-    where
-        F: FnOnce(R) -> U,
-    {
+    where F: FnOnce(R) -> U {
         match self {
             Either::Left(l) => Either::Left(l),
             Either::Right(r) => Either::Right(f(r)),
@@ -70,8 +66,7 @@ impl<L, R> Either<L, R> {
     pub fn map<F, G, U, V>(self, f: F, g: G) -> Either<U, V>
     where
         F: FnOnce(L) -> U,
-        G: FnOnce(R) -> V,
-    {
+        G: FnOnce(R) -> V, {
         match self {
             Either::Left(l) => Either::Left(f(l)),
             Either::Right(r) => Either::Right(g(r)),
@@ -81,8 +76,7 @@ impl<L, R> Either<L, R> {
     pub fn either<F, G, T>(self, left_fn: F, right_fn: G) -> T
     where
         F: FnOnce(L) -> T,
-        G: FnOnce(R) -> T,
-    {
+        G: FnOnce(R) -> T, {
         match self {
             Either::Left(l) => left_fn(l),
             Either::Right(r) => right_fn(r),
@@ -104,9 +98,7 @@ impl<L, R> Either<L, R> {
     }
 
     pub fn left_or_else<F>(self, f: F) -> L
-    where
-        F: FnOnce(R) -> L,
-    {
+    where F: FnOnce(R) -> L {
         match self {
             Either::Left(l) => l,
             Either::Right(r) => f(r),
@@ -114,9 +106,7 @@ impl<L, R> Either<L, R> {
     }
 
     pub fn right_or_else<F>(self, f: F) -> R
-    where
-        F: FnOnce(L) -> R,
-    {
+    where F: FnOnce(L) -> R {
         match self {
             Either::Right(r) => r,
             Either::Left(l) => f(l),
@@ -132,8 +122,7 @@ impl<L, R> Either<L, R> {
 }
 
 impl<L, R> Either<L, R>
-where
-    L: Default,
+where L: Default
 {
     pub fn left_or_default(self) -> L {
         match self {
@@ -144,8 +133,7 @@ where
 }
 
 impl<L, R> Either<L, R>
-where
-    R: Default,
+where R: Default
 {
     pub fn right_or_default(self) -> R {
         match self {

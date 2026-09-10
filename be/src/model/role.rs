@@ -1,5 +1,5 @@
-use chrono::NaiveDateTime;
 use crate::api::RoleUserResourceListResult;
+use chrono::NaiveDateTime;
 
 #[derive(sqlx::FromRow)]
 pub struct RoleEntity {
@@ -38,10 +38,6 @@ pub struct RoleUserResource {
 
 impl From<RoleUserResource> for RoleUserResourceListResult {
     fn from(value: RoleUserResource) -> Self {
-        Self {
-            id: value.id,
-            name: value.name,
-            display_name: value.display_name,
-        }
+        Self { id: value.id, name: value.name, display_name: value.display_name }
     }
 }

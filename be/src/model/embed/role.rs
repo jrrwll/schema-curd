@@ -9,20 +9,7 @@ pub enum ResourceTypeEnum {
     Table,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    Deserialize,
-    Serialize,
-    EnumString,
-    Display,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Serialize, EnumString, Display)]
 #[serde(rename_all = "snake_case")]
 pub enum RoleEnum {
     Read,

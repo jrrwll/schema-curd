@@ -1,16 +1,19 @@
 use corers::{api::PageResult, axum::ApiError};
 
 use crate::{
-    api::*, common::{error::ErrorCode, state::ApiState}, model::{CreateDatasource, DatasourceEntity, UpdateDatasource, UserEntity, embed::RoleEnum}, repo::DatasourceRepo, service::{AccessService, MetaService}, util::serialize_config,
+    api::*,
+    common::{error::ErrorCode, state::ApiState},
+    model::{CreateDatasource, DatasourceEntity, UpdateDatasource, UserEntity, embed::RoleEnum},
+    repo::DatasourceRepo,
+    service::{AccessService, MetaService},
+    util::serialize_config,
 };
 
 pub struct DatasourceService;
 
 impl DatasourceService {
     pub async fn list(
-        state: &ApiState,
-        param: DatasourceListParam,
-        user: UserEntity,
+        state: &ApiState, param: DatasourceListParam, user: UserEntity,
     ) -> Result<PageResult<DatasourceListResult>, ApiError> {
         let op_user_id = user.id;
         let super_admin = user.super_admin;
@@ -23,9 +26,7 @@ impl DatasourceService {
 
         let mut items: Vec<DatasourceListResult> = items.into_iter().map(Into::into).collect();
         if super_admin {
-            items
-                .iter_mut()
-                .for_each(|item| item.effective_role = EffectiveRoleEnum::Write);
+            items.iter_mut().for_each(|item| item.effective_role = EffectiveRoleEnum::Write);
         } else {
             let datasource_roles = AccessService::load_datasource_roles(state, op_user_id).await?;
             for item in &mut items {
@@ -40,11 +41,7 @@ impl DatasourceService {
         Ok(result)
     }
 
-    pub async fn detail(
-        state: &ApiState,
-        id: i64,
-        role: RoleEnum,
-    ) -> Result<DatasourceDetailResult, ApiError> {
+    pub async fn detail(state: &ApiState, id: i64, role: RoleEnum) -> Result<DatasourceDetailResult, ApiError> {
         let entity = Self::get_datasource(state, id).await?;
         let mut result: DatasourceDetailResult = entity.try_into()?;
         if role == RoleEnum::Write {
@@ -61,8 +58,7 @@ impl DatasourceService {
     }
 
     pub async fn get_datasource_by_name(
-        state: &ApiState,
-        datasource_name: String,
+        state: &ApiState, datasource_name: String,
     ) -> Result<DatasourceEntity, ApiError> {
         DatasourceRepo::get_by_name(&state.pool, datasource_name.clone())
             .await
@@ -70,11 +66,7 @@ impl DatasourceService {
             .ok_or_else(|| ErrorCode::datasource_name_not_found(datasource_name).into_error())
     }
 
-    pub async fn create(
-        state: &ApiState,
-        param: DatasourceCreateParam,
-        op_user_id: i64,
-    ) -> Result<(), ApiError> {
+    pub async fn create(state: &ApiState, param: DatasourceCreateParam, op_user_id: i64) -> Result<(), ApiError> {
         let entity = CreateDatasource {
             name: param.name,
             url: param.url,
@@ -90,11 +82,7 @@ impl DatasourceService {
         Ok(())
     }
 
-    pub async fn update(
-        state: &ApiState,
-        param: DatasourceUpdateParam,
-        op_user_id: i64,
-    ) -> Result<(), ApiError> {
+    pub async fn update(state: &ApiState, param: DatasourceUpdateParam, op_user_id: i64) -> Result<(), ApiError> {
         Self::get_datasource(state, param.id).await?;
 
         let entity = UpdateDatasource {

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -12,16 +12,12 @@ pub enum DataType {
 }
 
 impl DataType {
-
     pub fn from_database_type(database_type: &str) -> Self {
         let normalized = database_type.to_ascii_lowercase();
-        let base_type = normalized
-            .split_once('(')
-            .map_or(normalized.as_str(), |(base, _)| base)
-            .trim();
+        let base_type = normalized.split_once('(').map_or(normalized.as_str(), |(base, _)| base).trim();
         match base_type {
-            "tinyint" | "smallint" | "mediumint" | "int" | "integer" | "bigint" | "serial"
-            | "bigserial" | "smallserial" => DataType::Int,
+            "tinyint" | "smallint" | "mediumint" | "int" | "integer" | "bigint" | "serial" | "bigserial"
+            | "smallserial" => DataType::Int,
             "decimal" | "numeric" | "float" | "double" | "double precision" | "real" => DataType::Float,
             "bool" | "boolean" => DataType::Bool,
             _ => DataType::Text,

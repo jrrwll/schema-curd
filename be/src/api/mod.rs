@@ -3,10 +3,10 @@ pub use payload::*;
 mod payload;
 
 mod auth;
-mod physical;
 mod datasource;
 mod discovery;
 mod entity;
+mod physical;
 mod role;
 mod table;
 mod user;

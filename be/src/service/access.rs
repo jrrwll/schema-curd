@@ -15,25 +15,24 @@ pub struct AccessService;
 impl AccessService {
     // permits
     pub async fn permit_datasource_write_by_table_id(
-        state: &ApiState,
-        user_id: i64,
-        table_id: i64,
+        state: &ApiState, user_id: i64, table_id: i64,
     ) -> Result<(), ApiError> {
         let table = Self::verify_table(state, Either::Left(table_id)).await?;
-        let datasource_role = Self::get_datasource_role(state, user_id, Either::Right(table.datasource_name.clone())).await?;
-        if datasource_role.is_some_and(|v|v.1.implies(RoleEnum::Write)) {
+        let datasource_role =
+            Self::get_datasource_role(state, user_id, Either::Right(table.datasource_name.clone())).await?;
+        if datasource_role.is_some_and(|v| v.1.implies(RoleEnum::Write)) {
             return Ok(());
         }
         Err(forbidden())
     }
 
     pub async fn permit_table_list(
-        state: &ApiState,
-        user_id: i64,
-        datasource_name: String,
+        state: &ApiState, user_id: i64, datasource_name: String,
     ) -> Result<Option<RoleEnum>, ApiError> {
         let datasource_role = Self::get_datasource_role(state, user_id, Either::Right(datasource_name.clone())).await?;
-        if let Some((_, datasource_role)) = datasource_role && datasource_role.implies(RoleEnum::Read) {
+        if let Some((_, datasource_role)) = datasource_role
+            && datasource_role.implies(RoleEnum::Read)
+        {
             return Ok(Some(datasource_role));
         }
 
@@ -45,10 +44,7 @@ impl AccessService {
     }
 
     pub async fn has_datasource_role(
-        state: &ApiState,
-        user_id: i64,
-        datasource_id: i64,
-        expect_role: RoleEnum,
+        state: &ApiState, user_id: i64, datasource_id: i64, expect_role: RoleEnum,
     ) -> Result<bool, ApiError> {
         let roles = Self::load_datasource_roles(state, user_id).await?;
         if roles.is_empty() {
@@ -70,10 +66,7 @@ impl AccessService {
     }
 
     pub async fn require_datasource_role(
-        state: &ApiState,
-        user_id: i64,
-        datasource_id_or_name: Either<i64, String>,
-        required_role: RoleEnum,
+        state: &ApiState, user_id: i64, datasource_id_or_name: Either<i64, String>, required_role: RoleEnum,
     ) -> Result<RoleEnum, ApiError> {
         let role = Self::get_datasource_role(state, user_id, datasource_id_or_name).await?;
         let Some((_, role)) = role else {
@@ -87,10 +80,7 @@ impl AccessService {
     }
 
     pub async fn require_table_role(
-        state: &ApiState,
-        user_id: i64,
-        table_id_or_name: Either<i64, (String, String)>,
-        required_role: RoleEnum,
+        state: &ApiState, user_id: i64, table_id_or_name: Either<i64, (String, String)>, required_role: RoleEnum,
     ) -> Result<(TableEntity, RoleEnum), ApiError> {
         let table_role = Self::get_table_role(state, user_id, table_id_or_name).await?;
         let Some((table, role)) = table_role else {
@@ -104,9 +94,7 @@ impl AccessService {
     }
 
     pub async fn get_datasource_role(
-        state: &ApiState,
-        user_id: i64,
-        datasource_id_or_name: Either<i64, String>,
+        state: &ApiState, user_id: i64, datasource_id_or_name: Either<i64, String>,
     ) -> Result<Option<(DatasourceEntity, RoleEnum)>, ApiError> {
         let datasource = Self::verify_datasource(state, datasource_id_or_name).await?;
         let user = Self::verify_user(state, user_id).await?;
@@ -124,17 +112,18 @@ impl AccessService {
     }
 
     pub async fn get_table_role(
-        state: &ApiState,
-        user_id: i64,
-        table_id_or_name: Either<i64, (String, String)>,
+        state: &ApiState, user_id: i64, table_id_or_name: Either<i64, (String, String)>,
     ) -> Result<Option<(TableEntity, RoleEnum)>, ApiError> {
         let table = Self::verify_table(state, table_id_or_name).await?;
-        let datasource_role = Self::get_datasource_role(state, user_id, Either::Right(table.datasource_name.clone())).await?;
+        let datasource_role =
+            Self::get_datasource_role(state, user_id, Either::Right(table.datasource_name.clone())).await?;
         let datasource_role = match datasource_role {
             Some((_, datasource_role)) => Some(datasource_role),
             None => None,
         };
-        if let Some(role) = datasource_role && role.implies(RoleEnum::Write) {
+        if let Some(role) = datasource_role
+            && role.implies(RoleEnum::Write)
+        {
             return Ok(Some((table, role)));
         }
 
@@ -147,9 +136,7 @@ impl AccessService {
 
     // verify
     pub async fn verify_user(state: &ApiState, user_id: i64) -> Result<UserEntity, ApiError> {
-        let user = UserRepo::get(&state.pool, user_id)
-            .await
-            .map_err(ApiError::unknown)?;
+        let user = UserRepo::get(&state.pool, user_id).await.map_err(ApiError::unknown)?;
         let Some(user) = user else {
             return Err(ApiError::Forbidden("User not found".to_owned()));
         };
@@ -160,16 +147,11 @@ impl AccessService {
     }
 
     pub async fn verify_datasource(
-        state: &ApiState,
-        datasource_id_or_name: Either<i64, String>,
+        state: &ApiState, datasource_id_or_name: Either<i64, String>,
     ) -> Result<DatasourceEntity, ApiError> {
         let datasource = match datasource_id_or_name {
-            Either::Left(datasource_id) => {
-                DatasourceService::get_datasource(state, datasource_id).await?
-            }
-            Either::Right(datasource_name) => {
-                DatasourceService::get_datasource_by_name(state, datasource_name).await?
-            }
+            Either::Left(datasource_id) => DatasourceService::get_datasource(state, datasource_id).await?,
+            Either::Right(datasource_name) => DatasourceService::get_datasource_by_name(state, datasource_name).await?,
         };
         if datasource.disabled {
             return Err(ErrorCode::datasource_disabled(datasource.name).into_error());
@@ -178,8 +160,7 @@ impl AccessService {
     }
 
     pub async fn verify_table(
-        state: &ApiState,
-        table_id_or_name: Either<i64, (String, String)>,
+        state: &ApiState, table_id_or_name: Either<i64, (String, String)>,
     ) -> Result<TableEntity, ApiError> {
         let table = match table_id_or_name {
             Either::Left(table_id) => TableService::get_table(state, table_id).await?,
@@ -194,10 +175,7 @@ impl AccessService {
     }
 
     // load cache
-    pub async fn load_datasource_roles(
-        state: &ApiState,
-        user_id: i64,
-    ) -> Result<HashMap<i64, RoleEnum>, ApiError> {
+    pub async fn load_datasource_roles(state: &ApiState, user_id: i64) -> Result<HashMap<i64, RoleEnum>, ApiError> {
         let roles = RoleCacheService::get_datasource_roles(state.kv_store.clone(), user_id)
             .await
             .map_err(ApiError::unknown)?;
@@ -217,14 +195,11 @@ impl AccessService {
     }
 
     pub async fn load_table_roles(
-        state: &ApiState,
-        user_id: i64,
-        datasource_name: String,
+        state: &ApiState, user_id: i64, datasource_name: String,
     ) -> Result<HashMap<i64, RoleEnum>, ApiError> {
-        let roles =
-            RoleCacheService::get_table_roles(state.kv_store.clone(), user_id, &datasource_name)
-                .await
-                .map_err(ApiError::unknown)?;
+        let roles = RoleCacheService::get_table_roles(state.kv_store.clone(), user_id, &datasource_name)
+            .await
+            .map_err(ApiError::unknown)?;
         if let Some(roles) = roles {
             return Ok(roles);
         }
@@ -234,14 +209,9 @@ impl AccessService {
             .map_err(ApiError::unknown)?;
         let roles = parse_role_entities(entities)?;
 
-        RoleCacheService::save_table_roles(
-            state.kv_store.clone(),
-            user_id,
-            &datasource_name,
-            &roles,
-        )
-        .await
-        .map_err(ApiError::unknown)?;
+        RoleCacheService::save_table_roles(state.kv_store.clone(), user_id, &datasource_name, &roles)
+            .await
+            .map_err(ApiError::unknown)?;
         Ok(roles)
     }
 }

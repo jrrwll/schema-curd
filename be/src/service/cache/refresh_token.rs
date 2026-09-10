@@ -21,18 +21,11 @@ fn token_key(user_id: i64, token_hash: &str) -> String {
 pub struct RefreshTokenCacheService;
 
 impl RefreshTokenCacheService {
-    pub async fn save(
-        kv_store: Arc<dyn KvStore>,
-        user_id: i64,
-        token_hash: String,
-    ) -> anyhow::Result<()> {
+    pub async fn save(kv_store: Arc<dyn KvStore>, user_id: i64, token_hash: String) -> anyhow::Result<()> {
         let ttl_seconds = REFRESH_TOKEN_TTL_SECONDS;
         let expires_at = (Utc::now() + Duration::seconds(ttl_seconds as i64)).timestamp();
         let key = token_key(user_id, &token_hash);
-        let value = serde_json::to_vec(&RefreshTokenRecord {
-            user_id,
-            expires_at,
-        })?;
+        let value = serde_json::to_vec(&RefreshTokenRecord { user_id, expires_at })?;
         if !kv_store.set_if_absent(key, value, ttl_seconds).await? {
             bail!("Refresh token digest collision");
         }
@@ -40,10 +33,7 @@ impl RefreshTokenCacheService {
     }
 
     pub async fn rotate(
-        kv_store: Arc<dyn KvStore>,
-        user_id: i64,
-        old_token_hash: String,
-        new_token_hash: String,
+        kv_store: Arc<dyn KvStore>, user_id: i64, old_token_hash: String, new_token_hash: String,
     ) -> anyhow::Result<Option<i64>> {
         let ttl_seconds = REFRESH_TOKEN_TTL_SECONDS;
         let now = Utc::now();
@@ -60,10 +50,7 @@ impl RefreshTokenCacheService {
         }
 
         let new_key = token_key(user_id, &new_token_hash);
-        let new_record = RefreshTokenRecord {
-            user_id,
-            expires_at: new_expires_at,
-        };
+        let new_record = RefreshTokenRecord { user_id, expires_at: new_expires_at };
         let new_value = serde_json::to_vec(&new_record)?;
         let moved = kv_store
             .move_if_value(old_key, old_value, new_key, new_value, ttl_seconds)

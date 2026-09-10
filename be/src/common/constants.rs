@@ -3,7 +3,7 @@ pub const DEFAULT_DATABASE_URL: &str = "sqlite://schema.sqlite";
 pub const DEFAULT_LOG_FILTER: &str = "schema_curd=info,sqlx::query=info";
 
 pub const ACCESS_TOKEN_TTL_SECONDS: i64 = 10 * 60;
-pub const REFRESH_TOKEN_TTL_SECONDS:u64 = 7 * 24 * 60 * 60;
+pub const REFRESH_TOKEN_TTL_SECONDS: u64 = 7 * 24 * 60 * 60;
 pub const MIN_JWT_SECRET_LENGTH: u64 = 16;
 pub const MAX_REFRESH_TOKEN_LENGTH: u64 = 512;
 pub const MAX_REQUEST_BODY_BYTES: usize = 2 * 1024 * 1024;

@@ -1,15 +1,15 @@
-use std::collections::HashMap;
 use chrono::Utc;
 use sqlx::{QueryBuilder, Row};
+use std::collections::HashMap;
 
+use crate::api::{RoleResourceListParam, RoleUserListParam};
+use crate::common::constants::MAX_GRANT_LIST_COUNT;
+use crate::model::RoleUserResource;
 use crate::{
     api::RoleListParam,
     common::db::DbPool,
     model::{CreateUserRole, RoleEntity},
 };
-use crate::api::{RoleResourceListParam, RoleUserListParam};
-use crate::common::constants::MAX_GRANT_LIST_COUNT;
-use crate::model::RoleUserResource;
 
 pub struct RoleRepo;
 
@@ -28,10 +28,7 @@ impl RoleRepo {
     }
 
     pub async fn get_by_uk(
-        pool: &DbPool,
-        user_id: i64,
-        resource_type: String,
-        resource_id: i64,
+        pool: &DbPool, user_id: i64, resource_type: String, resource_id: i64,
     ) -> Result<Option<RoleEntity>, sqlx::Error> {
         sqlx::query_as!(
             RoleEntity,
@@ -47,10 +44,7 @@ impl RoleRepo {
         .await
     }
 
-    pub async fn get_datasource_roles(
-        pool: &DbPool,
-        user_id: i64,
-    ) -> Result<Vec<RoleEntity>, sqlx::Error> {
+    pub async fn get_datasource_roles(pool: &DbPool, user_id: i64) -> Result<Vec<RoleEntity>, sqlx::Error> {
         let rows = sqlx::query_as!(
             RoleEntity,
             "
@@ -65,9 +59,7 @@ impl RoleRepo {
     }
 
     pub async fn get_table_roles(
-        pool: &DbPool,
-        user_id: i64,
-        datasource_name: String,
+        pool: &DbPool, user_id: i64, datasource_name: String,
     ) -> Result<Vec<RoleEntity>, sqlx::Error> {
         let rows = sqlx::query_as!(
             RoleEntity,
@@ -86,10 +78,7 @@ impl RoleRepo {
         Ok(rows)
     }
 
-    pub async fn get_all_roles(
-        pool: &DbPool,
-        user_id: i64,
-    ) -> Result<Vec<RoleEntity>, sqlx::Error> {
+    pub async fn get_all_roles(pool: &DbPool, user_id: i64) -> Result<Vec<RoleEntity>, sqlx::Error> {
         let rows = sqlx::query_as!(
             RoleEntity,
             "
@@ -104,10 +93,7 @@ impl RoleRepo {
     }
 
     pub async fn get_user_ids(
-        pool: &DbPool,
-        resource_type: String,
-        resource_id: i64,
-        user_ids: Vec<i64>,
+        pool: &DbPool, resource_type: String, resource_id: i64, user_ids: Vec<i64>,
     ) -> Result<HashMap<i64, String>, sqlx::Error> {
         let mut query_builder = QueryBuilder::new(
             "
@@ -125,20 +111,18 @@ impl RoleRepo {
         }
         query_builder.push(")");
 
-        let rows = query_builder.build()
+        let rows = query_builder
+            .build()
             .fetch_all(pool)
             .await?
             .into_iter()
-            .map(|row|(row.get("user_id"), row.get("role")))
+            .map(|row| (row.get("user_id"), row.get("role")))
             .collect();
         Ok(rows)
     }
 
     pub async fn get_resource_ids(
-        pool: &DbPool,
-        user_id: i64,
-        resource_type: String,
-        resource_ids: Vec<i64>,
+        pool: &DbPool, user_id: i64, resource_type: String, resource_ids: Vec<i64>,
     ) -> Result<HashMap<i64, String>, sqlx::Error> {
         let mut query_builder = QueryBuilder::new(
             "
@@ -146,12 +130,8 @@ impl RoleRepo {
                 where deleted_at = 0
                 ",
         );
-        query_builder
-            .push(" and user_id = ")
-            .push_bind(user_id);
-        query_builder
-            .push(" and resource_type = ")
-            .push_bind(resource_type);
+        query_builder.push(" and user_id = ").push_bind(user_id);
+        query_builder.push(" and resource_type = ").push_bind(resource_type);
 
         query_builder.push(" and resource_id in (");
         let mut separated = query_builder.separated(", ");
@@ -170,10 +150,7 @@ impl RoleRepo {
         Ok(rows)
     }
 
-    pub async fn get_user_id_count(
-        pool: &DbPool,
-        ids: Vec<i64>,
-    ) -> Result<Vec<(i64, i64)>, sqlx::Error> {
+    pub async fn get_user_id_count(pool: &DbPool, ids: Vec<i64>) -> Result<Vec<(i64, i64)>, sqlx::Error> {
         let mut query_builder = QueryBuilder::new(
             "
             select user_id, count(1) as cnt from sys_user_role
@@ -187,19 +164,18 @@ impl RoleRepo {
         query_builder.push(")");
         query_builder.push(" group by user_id");
 
-        let rows = query_builder.build()
+        let rows = query_builder
+            .build()
             .fetch_all(pool)
             .await?
             .into_iter()
-            .map(|row|(row.get("user_id"), row.get("cnt")))
+            .map(|row| (row.get("user_id"), row.get("cnt")))
             .collect();
         Ok(rows)
     }
 
-
     pub async fn list_grantable_user_datasource(
-        pool: &DbPool,
-        param: RoleUserListParam,
+        pool: &DbPool, param: RoleUserListParam,
     ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
         let user_id = param.user_id;
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
@@ -234,15 +210,13 @@ impl RoleRepo {
             user_id,
             MAX_GRANT_LIST_COUNT,
         )
-            .fetch_all(pool)
-            .await?;
+        .fetch_all(pool)
+        .await?;
         Ok(rows)
     }
 
     pub async fn list_grantable_user_table(
-        pool: &DbPool,
-        datasource_name: String,
-        param: RoleUserListParam,
+        pool: &DbPool, datasource_name: String, param: RoleUserListParam,
     ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
         let user_id = param.user_id;
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
@@ -279,15 +253,13 @@ impl RoleRepo {
             user_id,
             MAX_GRANT_LIST_COUNT,
         )
-            .fetch_all(pool)
-            .await?;
+        .fetch_all(pool)
+        .await?;
         Ok(rows)
     }
 
     pub async fn list_grantable_datasource_user(
-        pool: &DbPool,
-        datasource_id: i64,
-        param: RoleResourceListParam,
+        pool: &DbPool, datasource_id: i64, param: RoleResourceListParam,
     ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
 
@@ -322,15 +294,13 @@ impl RoleRepo {
             datasource_id,
             MAX_GRANT_LIST_COUNT,
         )
-            .fetch_all(pool)
-            .await?;
+        .fetch_all(pool)
+        .await?;
         Ok(rows)
     }
 
     pub async fn list_grantable_table_user(
-        pool: &DbPool,
-        table_id: i64,
-        param: RoleResourceListParam,
+        pool: &DbPool, table_id: i64, param: RoleResourceListParam,
     ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
         let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
 
@@ -365,15 +335,12 @@ impl RoleRepo {
             table_id,
             MAX_GRANT_LIST_COUNT,
         )
-            .fetch_all(pool)
-            .await?;
+        .fetch_all(pool)
+        .await?;
         Ok(rows)
     }
 
-    pub async fn list(
-        pool: &DbPool,
-        param: RoleListParam,
-    ) -> Result<(i64, Vec<RoleEntity>), sqlx::Error> {
+    pub async fn list(pool: &DbPool, param: RoleListParam) -> Result<(i64, Vec<RoleEntity>), sqlx::Error> {
         let (limit, offset) = param.page.get_limit_offset();
 
         let mut count_sql = QueryBuilder::new(
@@ -399,20 +366,11 @@ impl RoleRepo {
             ",
         );
 
-        let rows: Vec<RoleEntity> = rows_sql
-            .build_query_as()
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(pool)
-            .await?;
+        let rows: Vec<RoleEntity> = rows_sql.build_query_as().bind(limit).bind(offset).fetch_all(pool).await?;
         Ok((total, rows))
     }
 
-    pub async fn grant(
-        pool: &DbPool,
-        entity: CreateUserRole,
-        op_user_id: i64,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn grant(pool: &DbPool, entity: CreateUserRole, op_user_id: i64) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "
             insert into sys_user_role  (user_id, role, resource_type, resource_id, created_by)
@@ -429,11 +387,7 @@ impl RoleRepo {
         Ok(())
     }
 
-    pub async fn batch_grant(
-        pool: &DbPool,
-        entities: Vec<CreateUserRole>,
-        op_user_id: i64,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn batch_grant(pool: &DbPool, entities: Vec<CreateUserRole>, op_user_id: i64) -> Result<(), sqlx::Error> {
         if entities.is_empty() {
             return Ok(());
         }
@@ -472,11 +426,7 @@ impl RoleRepo {
         Ok(affected > 0)
     }
 
-    pub async fn batch_revoke(
-        pool: &DbPool,
-        ids: Vec<i64>,
-        op_user_id: i64,
-    ) -> Result<bool, sqlx::Error> {
+    pub async fn batch_revoke(pool: &DbPool, ids: Vec<i64>, op_user_id: i64) -> Result<bool, sqlx::Error> {
         let deleted_at = Utc::now().timestamp_millis();
         let mut query_builder = QueryBuilder::new(
             "
@@ -500,12 +450,7 @@ impl RoleRepo {
         Ok(affected > 0)
     }
 
-    pub async fn update(
-        pool: &DbPool,
-        id: i64,
-        entity: CreateUserRole,
-        op_user_id: i64,
-    ) -> Result<bool, sqlx::Error> {
+    pub async fn update(pool: &DbPool, id: i64, entity: CreateUserRole, op_user_id: i64) -> Result<bool, sqlx::Error> {
         let mut transaction = pool.begin().await?;
 
         let deleted_at = Utc::now().timestamp_millis();
@@ -549,8 +494,7 @@ impl RoleRepo {
 fn push_list_filters<DB: sqlx::Database>(builder: &mut QueryBuilder<DB>, param: &RoleListParam)
 where
     for<'q> i64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-    for<'q> String: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-{
+    for<'q> String: sqlx::Encode<'q, DB> + sqlx::Type<DB>, {
     if let Some(resource_type) = param.resource_type {
         builder.push(" and resource_type = ?");
         builder.push_bind(resource_type.to_string());

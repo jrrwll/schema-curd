@@ -5,7 +5,6 @@ use thiserror::Error;
 #[derive(Debug, Error, AsRefStr, EnumString)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
-
     #[error("Operate failed")]
     operate_failed,
 
@@ -29,7 +28,7 @@ pub enum ErrorCode {
 
     #[error("Roles cannot grant")]
     roles_cannot_grant,
-    
+
     #[error("Datasource not found: {0}")]
     datasource_not_found(i64),
 

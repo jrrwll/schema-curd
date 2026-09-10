@@ -1,14 +1,18 @@
 use anyhow::Context;
 use corers::axum::ApiError;
 
-use crate::{api::EntityListParam, model::{BindValue, EntityListFilter, EntityListPlan, embed::{FilterOperator, OrderByConfig}}};
-use crate::model::embed::{DatasourceConfig, TableDetailConfig};
 use super::value::normalize_value;
+use crate::model::embed::{DatasourceConfig, TableDetailConfig};
+use crate::{
+    api::EntityListParam,
+    model::{
+        BindValue, EntityListFilter, EntityListPlan,
+        embed::{FilterOperator, OrderByConfig},
+    },
+};
 
 pub fn build_list_plan(
-    config: &TableDetailConfig,
-    datasource_config: &DatasourceConfig,
-    param: &EntityListParam,
+    config: &TableDetailConfig, datasource_config: &DatasourceConfig, param: &EntityListParam,
 ) -> Result<EntityListPlan, ApiError> {
     let mut unknown: Vec<_> = param
         .condition
@@ -18,10 +22,7 @@ pub fn build_list_plan(
         .collect();
     if !unknown.is_empty() {
         unknown.sort();
-        return Err(ApiError::Validation(format!(
-            "Unconfigured query columns: {}",
-            unknown.join(", ")
-        )));
+        return Err(ApiError::Validation(format!("Unconfigured query columns: {}", unknown.join(", "))));
     }
 
     let mut filters = config
@@ -35,17 +36,13 @@ pub fn build_list_plan(
                     .as_array()
                     .expect("Collection filter was validated")
                     .iter()
-                    .map(|v|v.try_into())
+                    .map(|v| v.try_into())
                     .collect::<Result<Vec<_>, ApiError>>()?
             } else {
                 let value: BindValue = (&condition.value).try_into()?;
                 vec![value]
             };
-            Ok(EntityListFilter {
-                column: condition.column.clone(),
-                operator: condition.operator,
-                values,
-            })
+            Ok(EntityListFilter { column: condition.column.clone(), operator: condition.operator, values })
         })
         .collect::<Result<Vec<_>, ApiError>>()?;
 
@@ -55,54 +52,42 @@ pub fn build_list_plan(
         if raw_value.is_null() || raw_value.as_str().is_some_and(str::is_empty) {
             continue;
         }
-        let column = config.columns
+        let column = config
+            .columns
             .get(name)
             .with_context(|| "Unexpect error: missing column {name}")?;
         let mut value = normalize_value(raw_value, column, datasource_config, false)?;
         let operator = if column.is_numeric() || column.is_bool() {
             FilterOperator::Equal
         } else {
-            let BindValue::String(text) = value else {
-                unreachable!("Text column normalizes to string")
-            };
+            let BindValue::String(text) = value else { unreachable!("Text column normalizes to string") };
             value = BindValue::String(format!("%{text}%"));
             FilterOperator::Like
         };
-        filters.push(EntityListFilter {
-            column: name.clone(),
-            operator,
-            values: vec![value],
-        });
+        filters.push(EntityListFilter { column: name.clone(), operator, values: vec![value] });
     }
 
     let order_by = build_order_by(param, config)?;
 
-    Ok(EntityListPlan {
-        filters,
-        order_by,
-        page_no: param.page.page_no,
-        page_size: param.page.page_size,
-    })
+    Ok(EntityListPlan { filters, order_by, page_no: param.page.page_no, page_size: param.page.page_size })
 }
 
 fn build_order_by(param: &EntityListParam, config: &TableDetailConfig) -> Result<Vec<OrderByConfig>, ApiError> {
     let order_by = if let Some(order_by) = &param.order_by {
-        let column = config.columns
+        let column = config
+            .columns
             .get(&order_by.sort)
             .filter(|column| column.sortable)
             .ok_or_else(|| ApiError::Validation("Field does not support sorting".to_owned()))?;
-        vec![OrderByConfig {
-            sort: column.name.clone(),
-            desc: order_by.desc,
-        }]
+        vec![OrderByConfig { sort: column.name.clone(), desc: order_by.desc }]
     } else if !config.table_config.default_order_by.is_empty() {
         config.table_config.default_order_by.clone()
     } else {
-        config.table_config
-            .primary_keys.iter().map(|column| OrderByConfig {
-                sort: column.clone(),
-                desc: true,
-            })
+        config
+            .table_config
+            .primary_keys
+            .iter()
+            .map(|column| OrderByConfig { sort: column.clone(), desc: true })
             .collect()
     };
     Ok(order_by)

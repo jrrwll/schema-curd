@@ -2,7 +2,8 @@ use chrono::NaiveDateTime;
 use corers::axum::ApiError;
 
 use crate::{
-    api::{DatasourceDetailResult, DatasourceListResult, EffectiveRoleEnum}, util::{deserialize_config, format_datetime},
+    api::{DatasourceDetailResult, DatasourceListResult, EffectiveRoleEnum},
+    util::{deserialize_config, format_datetime},
 };
 
 #[derive(sqlx::FromRow)]
@@ -67,7 +68,7 @@ impl TryFrom<DatasourceEntity> for DatasourceDetailResult {
     type Error = ApiError;
 
     fn try_from(value: DatasourceEntity) -> Result<Self, Self::Error> {
-        Ok(Self { 
+        Ok(Self {
             url: value.url.clone(),
             username: value.username.clone(),
             password_configured: !value.password.clone().is_empty(),

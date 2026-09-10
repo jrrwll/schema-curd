@@ -33,10 +33,7 @@ pub struct PostgresPhysicalColumnRow {
 
 impl From<PhysicalTableRow> for PhysicalTableListResult {
     fn from(value: PhysicalTableRow) -> Self {
-        Self {
-            name: value.name,
-            comment: value.comment,
-        }
+        Self { name: value.name, comment: value.comment }
     }
 }
 

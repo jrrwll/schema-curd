@@ -12,9 +12,7 @@ pub(super) struct KevyKvStore {
 
 impl KevyKvStore {
     pub(super) fn open() -> Result<Self> {
-        Ok(Self {
-            store: Store::open(Config::default())?,
-        })
+        Ok(Self { store: Store::open(Config::default())? })
     }
 }
 
@@ -39,11 +37,7 @@ impl KvStore for KevyKvStore {
     }
 
     async fn move_if_value(
-        &self,
-        source_key: String,
-        expected_value: Vec<u8>,
-        destination_key: String,
-        destination_value: Vec<u8>,
+        &self, source_key: String, expected_value: Vec<u8>, destination_key: String, destination_value: Vec<u8>,
         ttl_seconds: u64,
     ) -> Result<bool> {
         self.store.with(|store| {

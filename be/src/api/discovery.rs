@@ -17,8 +17,7 @@ pub fn get_routes() -> Router<ApiState> {
 }
 
 async fn list_datasources(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<DiscoveryDatasourceListParam>,
 ) -> Result<ApiResult<Vec<DiscoveryDatasourceTableListResult>>, ApiError> {
     let op_user_id = identity.user_id;
@@ -29,13 +28,10 @@ async fn list_datasources(
 }
 
 async fn list_tables(
-    State(state): State<ApiState>,
-    Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<DiscoveryTableListParam>,
 ) -> Result<ApiResult<Vec<DiscoveryDatasourceTableListResult>>, ApiError> {
     let op_user_id = identity.user_id;
 
-    DiscoveryService::list_tables(&state, param, op_user_id)
-        .await
-        .map(Into::into)
+    DiscoveryService::list_tables(&state, param, op_user_id).await.map(Into::into)
 }

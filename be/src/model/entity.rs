@@ -26,12 +26,10 @@ impl TryFrom<&Value> for BindValue {
                 .map(BindValue::Integer)
                 .or_else(|| value.as_u64().map(BindValue::Unsigned))
                 .or_else(|| value.as_f64().map(BindValue::Float))
-                .ok_or_else(|| {
-                    ApiError::Validation("Fixed value number is out of range".to_owned())
-                }),
-            Value::Array(_) | Value::Object(_) => Err(ApiError::Validation(
-                "Config insert_fixed_value does not support arrays or objects".to_owned(),
-            )),
+                .ok_or_else(|| ApiError::Validation("Fixed value number is out of range".to_owned())),
+            Value::Array(_) | Value::Object(_) => {
+                Err(ApiError::Validation("Config insert_fixed_value does not support arrays or objects".to_owned()))
+            }
         }
     }
 }
@@ -50,4 +48,3 @@ pub struct EntityListFilter {
     pub operator: FilterOperator,
     pub values: Vec<BindValue>,
 }
-

@@ -1,23 +1,18 @@
 use anyhow::Context;
 use sqlx::{Database, QueryBuilder};
 
-use crate::{
-    model::{BindValue, EntityListFilter, EntityListPlan},
-};
 use crate::model::embed::TableDetailConfig;
+use crate::model::{BindValue, EntityListFilter, EntityListPlan};
 
 pub fn build_create_query<DB: Database>(
-    table: &str,
-    values: Vec<(String, BindValue)>,
-    quote: char,
+    table: &str, values: Vec<(String, BindValue)>, quote: char,
 ) -> QueryBuilder<DB>
 where
     for<'q> Option<String>: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> String: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> i64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> f64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-{
+    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>, {
     let mut builder = QueryBuilder::<DB>::new("insert into ");
     builder.push(identifier(table, quote)).push(" (");
     {
@@ -38,18 +33,14 @@ where
 }
 
 pub fn build_update_query<DB: Database>(
-    table: &str,
-    values: Vec<(String, BindValue)>,
-    where_values: Vec<(String, BindValue)>,
-    quote: char,
+    table: &str, values: Vec<(String, BindValue)>, where_values: Vec<(String, BindValue)>, quote: char,
 ) -> QueryBuilder<DB>
 where
     for<'q> Option<String>: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> String: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> i64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> f64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-{
+    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>, {
     let mut builder = QueryBuilder::<DB>::new("update ");
     builder.push(identifier(table, quote)).push(" set ");
     for (index, (name, value)) in values.into_iter().enumerate() {
@@ -71,18 +62,14 @@ where
 }
 
 pub fn build_list_queries<DB: Database>(
-    table: &TableDetailConfig,
-    plan: EntityListPlan,
-    quote: char,
-    json_function: Option<&str>,
+    table: &TableDetailConfig, plan: EntityListPlan, quote: char, json_function: Option<&str>,
 ) -> anyhow::Result<(QueryBuilder<DB>, QueryBuilder<DB>)>
 where
     for<'q> Option<String>: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> String: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> i64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> f64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-{
+    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>, {
     let mut count = QueryBuilder::<DB>::new("select count(*) from ");
     count.push(identifier(&table.table_name, quote));
     push_where(&mut count, plan.filters.clone(), quote)?;
@@ -107,9 +94,7 @@ where
             }
         }
     }
-    query
-        .push(" from ")
-        .push(identifier(&table.table_name, quote));
+    query.push(" from ").push(identifier(&table.table_name, quote));
     push_where(&mut query, plan.filters, quote)?;
     query.push(" order by ");
     {
@@ -122,8 +107,7 @@ where
         }
     }
     let limit = i64::from(plan.page_size);
-    let offset =
-        i64::try_from(u64::from(plan.page_no - 1) * u64::from(plan.page_size)).unwrap_or(i64::MAX);
+    let offset = i64::try_from(u64::from(plan.page_no - 1) * u64::from(plan.page_size)).unwrap_or(i64::MAX);
     // limit ? maybe not supported
     query.push(" limit ").push(limit);
     query.push(" offset ").push(offset);
@@ -131,17 +115,14 @@ where
 }
 
 fn push_where<DB: Database>(
-    builder: &mut QueryBuilder<DB>,
-    filters: Vec<EntityListFilter>,
-    quote: char,
+    builder: &mut QueryBuilder<DB>, filters: Vec<EntityListFilter>, quote: char,
 ) -> anyhow::Result<()>
 where
     for<'q> Option<String>: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> String: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> i64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> f64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-{
+    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>, {
     if filters.is_empty() {
         return Ok(());
     }
@@ -182,8 +163,7 @@ where
     for<'q> String: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> i64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
     for<'q> f64: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>,
-{
+    for<'q> bool: sqlx::Encode<'q, DB> + sqlx::Type<DB>, {
     match value {
         BindValue::Null => {
             builder.push_bind(Option::<String>::None);

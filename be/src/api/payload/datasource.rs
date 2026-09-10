@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{api::{EffectiveRoleEnum, PageParam}, model::embed::DatasourceConfig};
+use crate::{
+    api::{EffectiveRoleEnum, PageParam},
+    model::embed::DatasourceConfig,
+};
 
 #[derive(Debug, Default, Serialize, Deserialize, Validate)]
 pub struct DatasourceListParam {

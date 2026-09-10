@@ -1,8 +1,4 @@
-use axum::{
-    Router,
-    extract::State,
-    routing::{post},
-};
+use axum::{Router, extract::State, routing::post};
 
 use corers::api::{ApiPageResult, ApiResult};
 use corers::axum::{ApiError, ValidatedJson};
@@ -25,22 +21,19 @@ pub fn get_routes() -> Router<ApiState> {
             .route("/user/datasource/list", post(user_datasource_list))
             .route("/user/table/list", post(user_table_list))
             .route("/datasource/user/list", post(datasource_user_list))
-            .route("/table/user/list", post(table_user_list))
-        ,
+            .route("/table/user/list", post(table_user_list)),
     )
 }
 
 async fn list(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(_): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleListParam>,
 ) -> Result<ApiPageResult<RoleListResult>, ApiError> {
     RoleService::list(&state, param).await.map(Into::into)
 }
 
 async fn grant(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleGrantParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
@@ -50,8 +43,7 @@ async fn grant(
 }
 
 async fn batch_grant_user(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleBatchGrantUserParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
@@ -61,8 +53,7 @@ async fn batch_grant_user(
 }
 
 async fn batch_grant_resource(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleBatchGrantResourceParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
@@ -72,8 +63,7 @@ async fn batch_grant_resource(
 }
 
 async fn revoke(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<IdParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let id = param.id;
@@ -84,8 +74,7 @@ async fn revoke(
 }
 
 async fn batch_revoke(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<IdsParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let ids = param.ids;
@@ -96,8 +85,7 @@ async fn batch_revoke(
 }
 
 async fn update(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleUpdateParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
@@ -107,32 +95,28 @@ async fn update(
 }
 
 async fn user_datasource_list(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(_): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleUserListParam>,
 ) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
     RoleService::user_datasource_list(&state, param).await.map(Into::into)
 }
 
 async fn user_table_list(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(_): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleUserListParam>,
 ) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
     RoleService::user_table_list(&state, param).await.map(Into::into)
 }
 
 async fn datasource_user_list(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(_): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleResourceListParam>,
 ) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
     RoleService::datasource_user_list(&state, param).await.map(Into::into)
 }
 
 async fn table_user_list(
-    State(state): State<ApiState>,
-    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(_): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleResourceListParam>,
 ) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
     RoleService::table_user_list(&state, param).await.map(Into::into)

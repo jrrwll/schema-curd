@@ -2,15 +2,10 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use anyhow::{Context, Result};
 use corers::tracing::LeveledRollingFileAppender;
+use serde::Deserialize;
 use tracing_appender::rolling::{Builder, RollingFileAppender, Rotation};
 use tracing_subscriber::fmt;
-use tracing_subscriber::{
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-    EnvFilter,
-    Layer,
-};
-use serde::Deserialize;
+use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 use validator::Validate;
 
@@ -67,8 +62,8 @@ impl AppConfig {
 
     fn init_tracing(&self) {
         // export RUST_LOG=debug
-        let env_filter = EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| self.log_level.as_deref().unwrap_or("debug").into());
+        let env_filter =
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| self.log_level.as_deref().unwrap_or("debug").into());
 
         let log_dir = self.log_dir.as_deref().unwrap_or("logs");
         let appender = LeveledRollingFileAppender::new(|| self.appender_builder(), log_dir);
@@ -90,10 +85,7 @@ impl AppConfig {
                     .with_writer(std::io::stdout),
             );
 
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(level_layer)
-            .init();
+        tracing_subscriber::registry().with(env_filter).with(level_layer).init();
     }
 
     fn appender_builder(&self) -> Builder {

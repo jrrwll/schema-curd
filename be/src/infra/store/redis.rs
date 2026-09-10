@@ -43,10 +43,7 @@ impl RedisKvStore {
 impl KvStore for RedisKvStore {
     async fn get(&self, key: String) -> Result<Option<Vec<u8>>> {
         let mut connection = self.connection.clone();
-        Ok(redis::cmd("get")
-            .arg(key_name(&key))
-            .query_async(&mut connection)
-            .await?)
+        Ok(redis::cmd("get").arg(key_name(&key)).query_async(&mut connection).await?)
     }
 
     async fn set(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> Result<bool> {
@@ -75,11 +72,7 @@ impl KvStore for RedisKvStore {
     }
 
     async fn move_if_value(
-        &self,
-        source_key: String,
-        expected_value: Vec<u8>,
-        destination_key: String,
-        destination_value: Vec<u8>,
+        &self, source_key: String, expected_value: Vec<u8>, destination_key: String, destination_value: Vec<u8>,
         ttl_seconds: u64,
     ) -> Result<bool> {
         let mut connection = self.connection.clone();
@@ -124,10 +117,7 @@ impl KvStore for RedisKvStore {
             cursor = next;
         }
         for keys in matched_keys.chunks(SCAN_BATCH_SIZE) {
-            redis::cmd("del")
-                .arg(keys)
-                .query_async::<i64>(&mut connection)
-                .await?;
+            redis::cmd("del").arg(keys).query_async::<i64>(&mut connection).await?;
         }
         Ok(())
     }

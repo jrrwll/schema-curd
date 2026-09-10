@@ -42,7 +42,9 @@ impl DatasourceRepo {
         .await
     }
 
-    pub async fn get_multi(pool: &DbPool, ids: Vec<i64>, names: Vec<String>) -> Result<HashMap<String, DatasourceEntity>, sqlx::Error> {
+    pub async fn get_multi(
+        pool: &DbPool, ids: Vec<i64>, names: Vec<String>,
+    ) -> Result<HashMap<String, DatasourceEntity>, sqlx::Error> {
         if ids.is_empty() && names.is_empty() {
             return Ok(HashMap::new());
         }
@@ -52,7 +54,7 @@ impl DatasourceRepo {
                 , name, display_name, disabled as `disabled: _`, url, username, password, config
             from datasource_info
             where deleted_at = 0
-            "
+            ",
         );
         if !ids.is_empty() {
             query_builder.push(" and id in (");
@@ -71,23 +73,15 @@ impl DatasourceRepo {
             query_builder.push(")");
         }
 
-        let rows = query_builder
-            .build_query_as::<DatasourceEntity>()
-            .fetch_all(pool).await?;
+        let rows = query_builder.build_query_as::<DatasourceEntity>().fetch_all(pool).await?;
         Ok(rows.into_iter().map(|v| (v.name.clone(), v)).collect())
     }
 
-    pub async fn list(
-        pool: &DbPool,
-        param: DatasourceListParam,
-    ) -> Result<(i64, Vec<DatasourceEntity>), sqlx::Error> {
+    pub async fn list(pool: &DbPool, param: DatasourceListParam) -> Result<(i64, Vec<DatasourceEntity>), sqlx::Error> {
         let (limit, offset) = param.page.get_limit_offset();
 
         let name = param.name.as_ref().map(|value| format!("%{value}%"));
-        let display_name = param
-            .display_name
-            .as_ref()
-            .map(|value| format!("%{value}%"));
+        let display_name = param.display_name.as_ref().map(|value| format!("%{value}%"));
         let url = param.url.as_ref().map(|value| format!("%{value}%"));
         let disabled = param.disabled;
 
@@ -101,7 +95,10 @@ impl DatasourceRepo {
                 and coalesce(lower(display_name) like lower(?), true)
                 and coalesce(lower(url) like lower(?), true)
             ",
-            disabled, name, display_name, url,
+            disabled,
+            name,
+            display_name,
+            url,
         )
         .fetch_one(pool)
         .await?;
@@ -123,8 +120,12 @@ impl DatasourceRepo {
                 and coalesce(lower(url) like lower(?), true)
             order by id limit ? offset ?
             ",
-            disabled, name, display_name, url,
-            limit, offset,
+            disabled,
+            name,
+            display_name,
+            url,
+            limit,
+            offset,
         )
         .fetch_all(pool)
         .await?;
@@ -133,17 +134,12 @@ impl DatasourceRepo {
     }
 
     pub async fn list_permitted(
-        pool: &DbPool,
-        param: DatasourceListParam,
-        op_user_id: i64,
+        pool: &DbPool, param: DatasourceListParam, op_user_id: i64,
     ) -> Result<(i64, Vec<DatasourceEntity>), sqlx::Error> {
         let (limit, offset) = param.page.get_limit_offset();
 
         let name = param.name.as_ref().map(|value| format!("%{value}%"));
-        let display_name = param
-            .display_name
-            .as_ref()
-            .map(|value| format!("%{value}%"));
+        let display_name = param.display_name.as_ref().map(|value| format!("%{value}%"));
         let url = param.url.as_ref().map(|value| format!("%{value}%"));
         // disabled filter is only works for super admin
 
@@ -159,7 +155,9 @@ impl DatasourceRepo {
                 and coalesce(lower(ds.url) like lower(?), true)
             ",
             op_user_id,
-            name, display_name, url,
+            name,
+            display_name,
+            url,
         )
         .fetch_one(pool)
         .await?;
@@ -183,8 +181,11 @@ impl DatasourceRepo {
                 order by ds.updated_at desc limit ? offset ?
             ",
             op_user_id,
-            name, display_name, url,
-            limit, offset,
+            name,
+            display_name,
+            url,
+            limit,
+            offset,
         )
         .fetch_all(pool)
         .await?;
@@ -192,11 +193,7 @@ impl DatasourceRepo {
         Ok((total, rows))
     }
 
-    pub async fn create(
-        pool: &DbPool,
-        entity: CreateDatasource,
-        op_user_id: i64,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn create(pool: &DbPool, entity: CreateDatasource, op_user_id: i64) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "
             insert into datasource_info (created_by, updated_by, name, url, username, password, display_name, config)
@@ -210,15 +207,13 @@ impl DatasourceRepo {
             entity.password,
             entity.display_name,
             entity.config,
-        ).execute(pool).await?;
+        )
+        .execute(pool)
+        .await?;
         Ok(())
     }
 
-    pub async fn update(
-        pool: &DbPool,
-        entity: UpdateDatasource,
-        op_user_id: i64,
-    ) -> Result<bool, sqlx::Error> {
+    pub async fn update(pool: &DbPool, entity: UpdateDatasource, op_user_id: i64) -> Result<bool, sqlx::Error> {
         let affected = sqlx::query!(
             "
             update datasource_info
@@ -240,12 +235,7 @@ impl DatasourceRepo {
         Ok(affected > 0)
     }
 
-    pub async fn delete(
-        pool: &DbPool,
-        id: i64,
-        datasource_name: String,
-        op_user_id: i64,
-    ) -> Result<bool, sqlx::Error> {
+    pub async fn delete(pool: &DbPool, id: i64, datasource_name: String, op_user_id: i64) -> Result<bool, sqlx::Error> {
         let mut transaction = pool.begin().await?;
         let deleted_at = Utc::now().timestamp_millis();
 
@@ -257,7 +247,9 @@ impl DatasourceRepo {
             deleted_at,
             op_user_id,
             id,
-        ).execute(&mut *transaction).await
+        )
+        .execute(&mut *transaction)
+        .await
         .map(|result| result.rows_affected())?;
         if affected == 0 {
             transaction.rollback().await?;

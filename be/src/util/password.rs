@@ -8,9 +8,7 @@ pub async fn verify_password(password: String, encoded: String) -> Result<bool, 
         let hash = PasswordHash::new(&encoded)
             .context("Invalid user password hash")
             .map_err(ApiError::unknown)?;
-        Ok(Argon2::default()
-            .verify_password(password.as_bytes(), &hash)
-            .is_ok())
+        Ok(Argon2::default().verify_password(password.as_bytes(), &hash).is_ok())
     })
     .await
     .context("Password verification task failed")

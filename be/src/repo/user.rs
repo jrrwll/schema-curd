@@ -3,12 +3,15 @@ use std::collections::HashMap;
 use chrono::Utc;
 use sqlx::QueryBuilder;
 
-use crate::{api::{UserListParam}, common::db::DbPool, model::{CreateUser, UpdateUser, UserEntity}};
+use crate::{
+    api::UserListParam,
+    common::db::DbPool,
+    model::{CreateUser, UpdateUser, UserEntity},
+};
 
 pub struct UserRepo;
 
 impl UserRepo {
-
     pub async fn get(pool: &DbPool, id: i64) -> Result<Option<UserEntity>, sqlx::Error> {
         sqlx::query_as!(
             UserEntity,
@@ -35,9 +38,7 @@ impl UserRepo {
         }
         query_builder.push(")");
 
-        let rows = query_builder
-            .build_query_as::<UserEntity>()
-            .fetch_all(pool).await?;
+        let rows = query_builder.build_query_as::<UserEntity>().fetch_all(pool).await?;
         Ok(rows.into_iter().map(|v| (v.id, v)).collect())
     }
 
@@ -56,7 +57,9 @@ impl UserRepo {
             &name,
             &name,
             param.disabled,
-        ).fetch_one(pool).await?;
+        )
+        .fetch_one(pool)
+        .await?;
 
         if total < offset {
             return Ok((total, Vec::new()));
@@ -79,10 +82,10 @@ impl UserRepo {
             limit,
             offset,
         ).fetch_all(pool).await?;
-        
+
         Ok((total, rows))
     }
-    
+
     pub async fn delete(pool: &DbPool, id: i64, op_user_id: i64) -> Result<bool, sqlx::Error> {
         let mut transaction = pool.begin().await?;
 
@@ -130,7 +133,9 @@ impl UserRepo {
             user.name,
             user.password,
             user.display_name,
-        ).execute(pool).await?;
+        )
+        .execute(pool)
+        .await?;
         Ok(())
     }
 
@@ -147,12 +152,16 @@ impl UserRepo {
             user.password,
             user.display_name,
             user.id,
-        ).execute(pool).await
+        )
+        .execute(pool)
+        .await
         .map(|result| result.rows_affected())?;
         Ok(affected > 0)
     }
 
-    pub async fn set_disabled(pool: &DbPool, id: i64, op_user_id: i64, expect_disabled: bool, update_disabled: bool) -> Result<bool, sqlx::Error> {
+    pub async fn set_disabled(
+        pool: &DbPool, id: i64, op_user_id: i64, expect_disabled: bool, update_disabled: bool,
+    ) -> Result<bool, sqlx::Error> {
         let affected = sqlx::query!(
             "
             update sys_user
@@ -163,7 +172,9 @@ impl UserRepo {
             op_user_id,
             id,
             expect_disabled,
-        ).execute(pool).await
+        )
+        .execute(pool)
+        .await
         .map(|result| result.rows_affected())?;
         Ok(affected > 0)
     }

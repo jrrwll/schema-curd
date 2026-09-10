@@ -2,7 +2,9 @@ use chrono::NaiveDateTime;
 use corers::axum::ApiError;
 
 use crate::{
-    api::{EffectiveRoleEnum, TableDetailResult, TableListResult}, model::embed::{ColumnConfig, TableConfig}, util::{deserialize_config, format_datetime},
+    api::{EffectiveRoleEnum, TableDetailResult, TableListResult},
+    model::embed::{ColumnConfig, TableConfig},
+    util::{deserialize_config, format_datetime},
 };
 
 #[derive(sqlx::FromRow)]
@@ -71,11 +73,6 @@ impl TryFrom<TableEntity> for TableDetailResult {
         let columns_config: Vec<ColumnConfig> = deserialize_config(value.columns_config.clone())?;
 
         let table_name = value.table_name.clone();
-        Ok(Self {
-            base: value.into(),
-            table_name,
-            table_config,
-            columns_config,
-        })
+        Ok(Self { base: value.into(), table_name, table_config, columns_config })
     }
 }

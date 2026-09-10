@@ -33,7 +33,6 @@ pub struct UpdateUser {
 }
 
 impl From<UserEntity> for UserListResult {
-
     fn from(value: UserEntity) -> Self {
         Self {
             id: value.id,

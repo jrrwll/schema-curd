@@ -7,12 +7,12 @@ use sqlx::{MySql, Postgres, mysql::MySqlRow, types::Json};
 
 use crate::{
     model::{BindValue, EntityListPlan},
-    repo::{RuntimePool},
+    repo::RuntimePool,
 };
 
+use crate::model::embed::TableDetailConfig;
 use build::*;
 use mysql::mysql_row_to_value;
-use crate::model::embed::{TableDetailConfig};
 
 pub struct EntityRepo<'a> {
     pool: &'a RuntimePool,
@@ -45,19 +45,15 @@ impl<'a> EntityRepo<'a> {
     }
 
     pub async fn update(
-        &self,
-        values: Vec<(String, BindValue)>,
-        where_values: Vec<(String, BindValue)>,
+        &self, values: Vec<(String, BindValue)>, where_values: Vec<(String, BindValue)>,
     ) -> anyhow::Result<u64> {
         let affected = match self.pool {
-            RuntimePool::MySql(pool) => {
-                build_update_query::<MySql>(&self.table.table_name, values, where_values, '`')
-                    .build()
-                    .execute(pool)
-                    .await
-                    .context("Failed to update mysql database record")?
-                    .rows_affected()
-            }
+            RuntimePool::MySql(pool) => build_update_query::<MySql>(&self.table.table_name, values, where_values, '`')
+                .build()
+                .execute(pool)
+                .await
+                .context("Failed to update mysql database record")?
+                .rows_affected(),
             RuntimePool::Postgres(pool) => {
                 build_update_query::<Postgres>(&self.table.table_name, values, where_values, '"')
                     .build()
@@ -73,18 +69,14 @@ impl<'a> EntityRepo<'a> {
     pub async fn list(&self, plan: EntityListPlan) -> anyhow::Result<(i64, Vec<Value>)> {
         match self.pool {
             RuntimePool::MySql(pool) => {
-                let (mut count, mut query) =
-                    build_list_queries::<MySql>(self.table, plan, '`', None)?;
+                let (mut count, mut query) = build_list_queries::<MySql>(self.table, plan, '`', None)?;
                 let total: i64 = count
                     .build_query_scalar()
                     .fetch_one(pool)
                     .await
                     .context("Failed to query mysql record count")?;
-                let rows: Vec<MySqlRow> = query
-                    .build()
-                    .fetch_all(pool)
-                    .await
-                    .context("Failed to query mysql records")?;
+                let rows: Vec<MySqlRow> =
+                    query.build().fetch_all(pool).await.context("Failed to query mysql records")?;
                 let items = rows
                     .iter()
                     .map(|row| mysql_row_to_value(row, &self.table.columns))
@@ -92,12 +84,8 @@ impl<'a> EntityRepo<'a> {
                 Ok((total, items))
             }
             RuntimePool::Postgres(pool) => {
-                let (mut count, mut query) = build_list_queries::<Postgres>(
-                    self.table,
-                    plan,
-                    '"',
-                    Some("jsonb_build_object")
-                )?;
+                let (mut count, mut query) =
+                    build_list_queries::<Postgres>(self.table, plan, '"', Some("jsonb_build_object"))?;
                 let total: i64 = count
                     .build_query_scalar()
                     .fetch_one(pool)
@@ -108,10 +96,7 @@ impl<'a> EntityRepo<'a> {
                     .fetch_all(pool)
                     .await
                     .context("Failed to query postgres records")?;
-                Ok((
-                    total,
-                    items.into_iter().map(|item| item.0).collect(),
-                ))
+                Ok((total, items.into_iter().map(|item| item.0).collect()))
             }
         }
     }
