@@ -58,9 +58,9 @@ create table sys_user_role (
     created_by bigint null default null comment 'grantor user id',
     deleted_by bigint null default null comment 'revoker user id',
     user_id bigint not null comment 'user id',
-    role varchar(30) not null comment 'role enum',
     resource_type varchar(50) not null comment 'resource type',
     resource_id bigint not null comment 'resource id',
+    role varchar(30) not null comment 'role enum',
     primary key (id),
     unique key uk_user_resource_deleted_at (
         user_id, resource_type, resource_id, deleted_at

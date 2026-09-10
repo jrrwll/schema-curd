@@ -49,7 +49,7 @@ create table sys_user (
     password varchar(1000) not null,
     display_name varchar(30) not null,
     disabled integer not null default 0,
-    super_admin integer not null default 0,
+    super_admin integer not null default 0
 );
 
 create unique index uk_sys_user_name_deleted_at
@@ -62,9 +62,9 @@ create table sys_user_role (
     created_by integer default null,
     deleted_by integer default null,
     user_id integer not null,
-    role varchar(30) not null,
     resource_type varchar(50) not null,
     resource_id integer not null,
+    role varchar(30) not null
 );
 
 create unique index uk_sys_user_user_resource_deleted_at
