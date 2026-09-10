@@ -7,6 +7,9 @@ use crate::{
     common::db::DbPool,
     model::{CreateUserRole, RoleEntity},
 };
+use crate::api::{RoleResourceListParam, RoleUserListParam};
+use crate::common::constants::MAX_GRANT_LIST_COUNT;
+use crate::model::RoleUserResource;
 
 pub struct RoleRepo;
 
@@ -100,7 +103,7 @@ impl RoleRepo {
         Ok(rows)
     }
 
-    pub async fn get_by_resource(
+    pub async fn get_user_ids(
         pool: &DbPool,
         resource_type: String,
         resource_id: i64,
@@ -130,7 +133,44 @@ impl RoleRepo {
             .collect();
         Ok(rows)
     }
-    pub async fn get_user_id_and_count(
+
+    pub async fn get_resource_ids(
+        pool: &DbPool,
+        user_id: i64,
+        resource_type: String,
+        resource_ids: Vec<i64>,
+    ) -> Result<HashMap<i64, String>, sqlx::Error> {
+        let mut query_builder = QueryBuilder::new(
+            "
+                select resource_id, role from sys_user_role
+                where deleted_at = 0
+                ",
+        );
+        query_builder
+            .push(" and user_id = ")
+            .push_bind(user_id);
+        query_builder
+            .push(" and resource_type = ")
+            .push_bind(resource_type);
+
+        query_builder.push(" and resource_id in (");
+        let mut separated = query_builder.separated(", ");
+        for id in &resource_ids {
+            separated.push_bind(*id);
+        }
+        query_builder.push(")");
+
+        let rows = query_builder
+            .build()
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .map(|row| (row.get("resource_id"), row.get("role")))
+            .collect();
+        Ok(rows)
+    }
+
+    pub async fn get_user_id_count(
         pool: &DbPool,
         ids: Vec<i64>,
     ) -> Result<Vec<(i64, i64)>, sqlx::Error> {
@@ -153,6 +193,180 @@ impl RoleRepo {
             .into_iter()
             .map(|row|(row.get("user_id"), row.get("cnt")))
             .collect();
+        Ok(rows)
+    }
+
+
+    pub async fn list_grantable_user_datasource(
+        pool: &DbPool,
+        param: RoleUserListParam,
+    ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
+        let user_id = param.user_id;
+        let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
+
+        let rows = sqlx::query_as!(
+            RoleUserResource,
+            "
+            select ds.id,
+                ds.name,
+                ds.display_name
+            from datasource_info ds
+            where ds.deleted_at = 0
+                and ds.disabled = 0
+                and (
+                    coalesce(lower(ds.name) like lower(?), true)
+                    or
+                    coalesce(lower(ds.display_name) like lower(?), true)
+                )
+                and not exists (
+                    select 1
+                    from sys_user_role ur
+                    where ur.user_id = ?
+                        and ur.resource_type = 'datasource'
+                        and ur.resource_id = ds.id
+                        and ur.deleted_at = 0
+                )
+            order by ds.updated_at desc
+            limit ?
+            ",
+            keyword,
+            keyword,
+            user_id,
+            MAX_GRANT_LIST_COUNT,
+        )
+            .fetch_all(pool)
+            .await?;
+        Ok(rows)
+    }
+
+    pub async fn list_grantable_user_table(
+        pool: &DbPool,
+        datasource_name: String,
+        param: RoleUserListParam,
+    ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
+        let user_id = param.user_id;
+        let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
+
+        let rows = sqlx::query_as!(
+            RoleUserResource,
+            "
+            select ti.id,
+                ti.name,
+                ti.display_name
+            from table_info ti
+            where ti.datasource_name = ?
+                and ti.deleted_at = 0
+                and ti.disabled = 0
+                and (
+                    coalesce(lower(ti.name) like lower(?), true)
+                    or
+                    coalesce(lower(ti.display_name) like lower(?), true)
+                )
+                and not exists (
+                    select 1
+                    from sys_user_role ur
+                    where ur.user_id = ?
+                        and ur.resource_type = 'table'
+                        and ur.resource_id = ti.id
+                        and ur.deleted_at = 0
+                )
+            order by ti.updated_at desc
+            limit ?
+            ",
+            datasource_name,
+            keyword,
+            keyword,
+            user_id,
+            MAX_GRANT_LIST_COUNT,
+        )
+            .fetch_all(pool)
+            .await?;
+        Ok(rows)
+    }
+
+    pub async fn list_grantable_datasource_user(
+        pool: &DbPool,
+        datasource_id: i64,
+        param: RoleResourceListParam,
+    ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
+        let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
+
+        let rows = sqlx::query_as!(
+            RoleUserResource,
+            "
+            select u.id,
+                u.name,
+                u.display_name
+            from sys_user u
+            where u.deleted_at = 0
+                and u.disabled = 0
+                and u.super_admin = 0
+                and (
+                    coalesce(lower(u.name) like lower(?), true)
+                    or
+                    coalesce(lower(u.display_name) like lower(?), true)
+                )
+                and not exists (
+                    select 1
+                    from sys_user_role ur
+                    where ur.user_id = u.id
+                        and ur.resource_type = 'datasource'
+                        and ur.resource_id = ?
+                        and ur.deleted_at = 0
+                )
+            order by u.updated_at desc
+            limit ?
+            ",
+            keyword,
+            keyword,
+            datasource_id,
+            MAX_GRANT_LIST_COUNT,
+        )
+            .fetch_all(pool)
+            .await?;
+        Ok(rows)
+    }
+
+    pub async fn list_grantable_table_user(
+        pool: &DbPool,
+        table_id: i64,
+        param: RoleResourceListParam,
+    ) -> Result<Vec<RoleUserResource>, sqlx::Error> {
+        let keyword = param.keyword.as_ref().map(|value| format!("%{value}%"));
+
+        let rows = sqlx::query_as!(
+            RoleUserResource,
+            "
+            select u.id,
+                u.name,
+                u.display_name
+            from sys_user u
+            where u.deleted_at = 0
+                and u.disabled = 0
+                and u.super_admin = 0
+                and (
+                    coalesce(lower(u.name) like lower(?), true)
+                    or
+                    coalesce(lower(u.display_name) like lower(?), true)
+                )
+                and not exists (
+                    select 1
+                    from sys_user_role ur
+                    where ur.user_id = u.id
+                        and ur.resource_type = 'table'
+                        and ur.resource_id = ?
+                        and ur.deleted_at = 0
+                )
+            order by u.updated_at desc
+            limit ?
+            ",
+            keyword,
+            keyword,
+            table_id,
+            MAX_GRANT_LIST_COUNT,
+        )
+            .fetch_all(pool)
+            .await?;
         Ok(rows)
     }
 

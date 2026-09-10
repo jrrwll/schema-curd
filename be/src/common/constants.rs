@@ -13,7 +13,8 @@ pub const MAX_PAGE_NO: u32 = 10000;
 
 pub const DEFAULT_PAGE_NO: u32 = 1;
 pub const DEFAULT_PAGE_SIZE: u32 = 20;
-pub const MAX_DISCOVERY_LIST_COUNT: u32 = 1000;
+pub const MAX_GRANT_LIST_COUNT: u32 = 100;
+pub const MAX_DISCOVERY_LIST_COUNT: u32 = 500;
 pub const MAX_ROLE_PAGE_SIZE: u32 = 100;
 pub const MAX_ENTITY_PAGE_SIZE: u32 = 500;
 pub const MAX_FILTER_ITEMS: usize = 100;

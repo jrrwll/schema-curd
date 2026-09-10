@@ -74,6 +74,27 @@ pub struct RoleUpdateParam {
     pub role: RoleEnum,
 }
 
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleUserListParam {
+    pub user_id: i64,
+    pub datasource_name: Option<String>,
+    pub keyword: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleResourceListParam {
+    pub datasource_name: Option<String>,
+    pub table_id: Option<i64>,
+    pub keyword: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct RoleUserResourceListResult {
+    pub id: i64,
+    pub name: String,
+    pub display_name: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum EffectiveRoleEnum {

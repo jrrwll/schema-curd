@@ -22,13 +22,17 @@ pub fn get_routes() -> Router<ApiState> {
             .route("/revoke", post(revoke))
             .route("/batch/revoke", post(batch_revoke))
             .route("/update", post(update))
+            .route("/user/datasource/list", post(user_datasource_list))
+            .route("/user/table/list", post(user_table_list))
+            .route("/datasource/user/list", post(datasource_user_list))
+            .route("/table/user/list", post(table_user_list))
         ,
     )
 }
 
 async fn list(
     State(state): State<ApiState>,
-    CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    CurrentSuperAdmin(_): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<RoleListParam>,
 ) -> Result<ApiPageResult<RoleListResult>, ApiError> {
     RoleService::list(&state, param).await.map(Into::into)
@@ -102,3 +106,34 @@ async fn update(
     Ok(ApiResult::ok(None))
 }
 
+async fn user_datasource_list(
+    State(state): State<ApiState>,
+    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    ValidatedJson(param): ValidatedJson<RoleUserListParam>,
+) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
+    RoleService::user_datasource_list(&state, param).await.map(Into::into)
+}
+
+async fn user_table_list(
+    State(state): State<ApiState>,
+    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    ValidatedJson(param): ValidatedJson<RoleUserListParam>,
+) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
+    RoleService::user_table_list(&state, param).await.map(Into::into)
+}
+
+async fn datasource_user_list(
+    State(state): State<ApiState>,
+    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    ValidatedJson(param): ValidatedJson<RoleResourceListParam>,
+) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
+    RoleService::datasource_user_list(&state, param).await.map(Into::into)
+}
+
+async fn table_user_list(
+    State(state): State<ApiState>,
+    CurrentSuperAdmin(_): CurrentSuperAdmin,
+    ValidatedJson(param): ValidatedJson<RoleResourceListParam>,
+) -> Result<ApiResult<Vec<RoleUserResourceListResult>>, ApiError> {
+    RoleService::table_user_list(&state, param).await.map(Into::into)
+}

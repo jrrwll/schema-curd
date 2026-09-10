@@ -6,9 +6,9 @@ use corers::{api::PageResult, axum::ApiError};
 use crate::common::error::ErrorCode;
 use crate::model::{CreateUserRole, RoleEntity, UserEntity};
 use crate::repo::UserRepo;
-use crate::util::format_datetime;
+use crate::util::{format_datetime, Either};
 use crate::{api::*, common::state::ApiState, repo::RoleRepo};
-use crate::service::{RoleCacheService};
+use crate::service::{AccessService, RoleCacheService};
 
 pub struct RoleService;
 
@@ -83,23 +83,48 @@ impl RoleService {
         let resource_id = param.resource_id;
 
         // check uk
-        let user_id_role_map: HashMap<i64, String> = param.items.iter()
-            .map(|item|(item.user_id, item.role.to_string())).collect();
-        if user_id_role_map.len() != param.items.len() {
+        let items_cnt = param.items.len();
+        let user_role_map: HashMap<i64, String> = param
+            .items
+            .into_iter()
+            .map(|item| (item.user_id, item.role.to_string()))
+            .collect();
+        if user_role_map.len() != items_cnt {
             return Err(ApiError::Validation("duplicate role ids".to_owned()));
         }
-        let user_ids = user_id_role_map.keys().cloned().collect::<Vec<_>>();
+        let user_ids = user_role_map.keys().cloned().collect::<Vec<_>>();
 
-        let user_roles = RoleRepo::get_by_resource(&state.pool, resource_type.clone(), resource_id, user_ids)
-            .await.map_err(ApiError::unknown)?;
+        let existing_user_roles =
+            RoleRepo::get_user_ids(&state.pool, resource_type.clone(), resource_id, user_ids)
+                .await
+                .map_err(ApiError::unknown)?;
+        let grant_items = if user_role_map.is_empty() {
+            user_role_map
+        } else {
+            let mut grant_items = HashMap::new();
+            for (user_id, role) in user_role_map {
+                if let Some(existing_role) = existing_user_roles.get(&user_id) {
+                    if existing_role == &role {
+                        continue; // already has the role
+                    }
+                    return Err(ErrorCode::roles_cannot_grant.into_error());
+                }
+                grant_items.insert(user_id, role);
+            }
+            grant_items
+        };
 
-        let entities = param.items.into_iter().map(|item| CreateUserRole {
-            user_id: item.user_id,
-            role: item.role.to_string(),
-            resource_type: resource_type.clone(),
-            resource_id,
-        }).collect::<Vec<_>>();
-        todo!()
+        let entities = grant_items
+            .into_iter()
+            .map(|(user_id, role)| CreateUserRole {
+                user_id,
+                role,
+                resource_type: resource_type.clone(),
+                resource_id,
+            })
+            .collect::<Vec<_>>();
+        RoleRepo::batch_grant(&state.pool, entities, op_user_id)
+            .await.map_err(ApiError::unknown)
     }
 
     pub async fn batch_grant_resource(
@@ -109,7 +134,49 @@ impl RoleService {
     ) -> Result<(), ApiError> {
         let resource_type = param.resource_type.to_string();
         let user_id = param.user_id;
-        todo!()
+
+        let items_cnt = param.items.len();
+        let resource_role_map: HashMap<i64, String> = param
+            .items
+            .into_iter()
+            .map(|item| (item.resource_id, item.role.to_string()))
+            .collect();
+        if resource_role_map.len() != items_cnt {
+            return Err(ApiError::Validation("duplicate resource ids".to_owned()));
+        }
+        let resource_ids = resource_role_map.keys().cloned().collect::<Vec<_>>();
+
+        let existing_user_roles =
+            RoleRepo::get_resource_ids(&state.pool, user_id, resource_type.clone(), resource_ids)
+                .await
+                .map_err(ApiError::unknown)?;
+        let grant_items = if resource_role_map.is_empty() {
+            resource_role_map
+        } else {
+            let mut grant_items = HashMap::new();
+            for (resource_id, role) in resource_role_map {
+                if let Some(existing_role) = existing_user_roles.get(&resource_id) {
+                    if existing_role == &role {
+                        continue; // already has the role
+                    }
+                    return Err(ErrorCode::roles_cannot_grant.into_error());
+                }
+                grant_items.insert(resource_id, role);
+            }
+            grant_items
+        };
+
+        let entities = grant_items
+            .into_iter()
+            .map(|(resource_id, role)| CreateUserRole {
+                user_id,
+                role,
+                resource_type: resource_type.clone(),
+                resource_id,
+            })
+            .collect::<Vec<_>>();
+        RoleRepo::batch_grant(&state.pool, entities, op_user_id)
+            .await.map_err(ApiError::unknown)
     }
 
     pub async fn revoke(state: &ApiState, id: i64, op_user_id: i64) -> Result<(), ApiError> {
@@ -128,7 +195,7 @@ impl RoleService {
     }
 
     pub async fn batch_revoke(state: &ApiState, ids: Vec<i64>, op_user_id: i64) -> Result<(), ApiError> {
-        let users = RoleRepo::get_user_id_and_count(&state.pool, ids.clone()).await
+        let users = RoleRepo::get_user_id_count(&state.pool, ids.clone()).await
             .map_err(ApiError::unknown)?;
         let record_cnt = users.iter().map(|(_, c)| *c).sum::<i64>() as usize;
         if record_cnt != ids.len() {
@@ -178,6 +245,67 @@ impl RoleService {
             return Err(ErrorCode::operate_failed.into_error());
         }
         Ok(())
+    }
+
+    pub async fn user_datasource_list(
+        state: &ApiState,
+        param: RoleUserListParam,
+    ) -> Result<Vec<RoleUserResourceListResult>, ApiError> {
+        let rows = RoleRepo::list_grantable_user_datasource(&state.pool, param)
+            .await
+            .map_err(ApiError::unknown)?;
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    pub async fn user_table_list(
+        state: &ApiState,
+        param: RoleUserListParam,
+    ) -> Result<Vec<RoleUserResourceListResult>, ApiError> {
+        let Some(datasource_name) = param.datasource_name.clone() else {
+            return Err(ApiError::Validation(
+                "Param datasource_name is required".to_owned(),
+            ));
+        };
+        let datasource =
+            AccessService::verify_datasource(state, Either::Right(datasource_name)).await?;
+
+        let rows = RoleRepo::list_grantable_user_table(&state.pool, datasource.name, param)
+            .await
+            .map_err(ApiError::unknown)?;
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    pub async fn datasource_user_list(
+        state: &ApiState,
+        param: RoleResourceListParam,
+    ) -> Result<Vec<RoleUserResourceListResult>, ApiError> {
+        let Some(datasource_name) = param.datasource_name.clone() else {
+            return Err(ApiError::Validation(
+                "Param datasource_name is required".to_owned(),
+            ));
+        };
+        let datasource =
+            AccessService::verify_datasource(state, Either::Right(datasource_name)).await?;
+        let rows = RoleRepo::list_grantable_datasource_user(&state.pool, datasource.id, param)
+            .await
+            .map_err(ApiError::unknown)?;
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    pub async fn table_user_list(
+        state: &ApiState,
+        param: RoleResourceListParam,
+    ) -> Result<Vec<RoleUserResourceListResult>, ApiError> {
+        let Some(table_id) = param.table_id else {
+            return Err(ApiError::Validation(
+                "Param table_id is required".to_owned(),
+            ));
+        };
+        let table = AccessService::verify_table(state, Either::Left(table_id)).await?;
+        let rows = RoleRepo::list_grantable_table_user(&state.pool, table.id, param)
+            .await
+            .map_err(ApiError::unknown)?;
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn get_role(state: &ApiState, id: i64) -> Result<RoleEntity, ApiError> {

@@ -26,6 +26,9 @@ pub enum ErrorCode {
 
     #[error("Role cannot grant: {0}")]
     role_cannot_grant(i64),
+
+    #[error("Roles cannot grant")]
+    roles_cannot_grant,
     
     #[error("Datasource not found: {0}")]
     datasource_not_found(i64),
