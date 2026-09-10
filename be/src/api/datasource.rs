@@ -22,7 +22,6 @@ pub fn get_routes() -> Router<ApiState> {
         "/datasource",
         Router::new()
             .route("/list", post(list))
-            // .route("/summary", post(summary))
             .route("/detail", get(detail))
             .route("/create", post(create))
             .route("/update", post(update))
