@@ -3,6 +3,10 @@ name = "schema-curd"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "schema-curd-cli"
+path = "src/cli.rs"
+
 [features]
 default = ["mysql"]
 sqlite = ["sqlx/sqlite"]
