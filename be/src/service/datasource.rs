@@ -1,13 +1,13 @@
-use corers::{api::PageResult, axum::ApiError};
-use either::Either;
 use crate::{
     api::*,
     common::{error::ErrorCode, state::ApiState},
-    model::{CreateDatasource, DatasourceEntity, UpdateDatasource, UserEntity, embed::RoleEnum},
+    model::{embed::RoleEnum, CreateDatasource, DatasourceEntity, UpdateDatasource},
     repo::DatasourceRepo,
     service::{AccessService, MetaService},
     util::serialize_config,
 };
+use corers::{api::PageResult, axum::ApiError};
+use either::Either;
 
 pub struct DatasourceService;
 
