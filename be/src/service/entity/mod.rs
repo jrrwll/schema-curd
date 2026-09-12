@@ -13,7 +13,6 @@ use crate::{
     repo::{EntityRepo, RuntimeDatasource},
 };
 
-use crate::model::TableEntity;
 use crate::model::embed::{RoleEnum, TableDetailConfig};
 use crate::service::AccessService;
 use query::build_list_plan;
