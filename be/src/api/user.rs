@@ -62,10 +62,8 @@ async fn disable(
     State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<IdParam>,
 ) -> Result<ApiResult<()>, ApiError> {
-    let user_id = param.id;
     let op_user_id = identity.user_id;
-
-    UserService::disable(&state, user_id, op_user_id).await?;
+    UserService::disable(&state, param.id, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
 
@@ -73,10 +71,8 @@ async fn enable(
     State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<IdParam>,
 ) -> Result<ApiResult<()>, ApiError> {
-    let user_id = param.id;
     let op_user_id = identity.user_id;
-
-    UserService::enable(&state, user_id, op_user_id).await?;
+    UserService::enable(&state, param.id, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
 
@@ -84,9 +80,7 @@ async fn delete(
     State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<IdParam>,
 ) -> Result<ApiResult<()>, ApiError> {
-    let user_id = param.id;
     let op_user_id = identity.user_id;
-
-    UserService::delete(&state, user_id, op_user_id).await?;
+    UserService::delete(&state, param.id, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }

@@ -1,5 +1,5 @@
 use corers::{api::PageResult, axum::ApiError};
-
+use either::Either;
 use crate::{
     api::*,
     common::{error::ErrorCode, state::ApiState},
@@ -13,9 +13,10 @@ pub struct DatasourceService;
 
 impl DatasourceService {
     pub async fn list(
-        state: &ApiState, param: DatasourceListParam, user: UserEntity,
+        state: &ApiState, param: DatasourceListParam, op_user_id: i64,
     ) -> Result<PageResult<DatasourceListResult>, ApiError> {
-        let op_user_id = user.id;
+        let user = AccessService::verify_user(&state, op_user_id).await?;
+
         let super_admin = user.super_admin;
         let (total, items) = if super_admin {
             DatasourceRepo::list(&state.pool, param).await
@@ -41,9 +42,11 @@ impl DatasourceService {
         Ok(result)
     }
 
-    pub async fn detail(state: &ApiState, id: i64, role: RoleEnum) -> Result<DatasourceDetailResult, ApiError> {
-        let entity = Self::get_datasource(state, id).await?;
-        let mut result: DatasourceDetailResult = entity.try_into()?;
+    pub async fn detail(state: &ApiState, id: i64, op_user_id: i64) -> Result<DatasourceDetailResult, ApiError> {
+        let (datasource, role) =
+            AccessService::require_datasource_role(&state, op_user_id, Either::Left(id), RoleEnum::Read).await?;
+
+        let mut result: DatasourceDetailResult = datasource.try_into()?;
         if role == RoleEnum::Write {
             result.base.effective_role = EffectiveRoleEnum::Write;
         }
@@ -83,8 +86,13 @@ impl DatasourceService {
     }
 
     pub async fn update(
-        state: &ApiState, datasource_id: i64, param: DatasourceUpdateParam, op_user_id: i64,
+        state: &ApiState, param: DatasourceUpdateParam, op_user_id: i64,
     ) -> Result<(), ApiError> {
+        let (datasource, _) =
+            AccessService::require_datasource_role(&state, op_user_id, Either::Right(param.name.clone()), RoleEnum::Write)
+                .await?;
+        let datasource_id = datasource.id;
+
         let entity = UpdateDatasource {
             id: datasource_id,
             url: param.url,
@@ -103,7 +111,9 @@ impl DatasourceService {
         Ok(())
     }
 
-    pub async fn delete(state: &ApiState, datasource: DatasourceEntity, op_user_id: i64) -> Result<(), ApiError> {
+    pub async fn delete(state: &ApiState, datasource_name: String, op_user_id: i64) -> Result<(), ApiError> {
+        let datasource = AccessService::verify_datasource(&state, Either::Right(datasource_name)).await?;
+
         let op_ok = DatasourceRepo::delete(&state.pool, datasource.id, datasource.name, op_user_id)
             .await
             .map_err(ApiError::unknown)?;

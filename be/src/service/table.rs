@@ -13,9 +13,11 @@ pub struct TableService;
 
 impl TableService {
     pub async fn list(
-        state: &ApiState, param: TableListParam, datasource_role: Option<RoleEnum>, op_user_id: i64,
+        state: &ApiState, param: TableListParam, op_user_id: i64,
     ) -> Result<PageResult<TableListResult>, ApiError> {
         let datasource_name = param.datasource.clone();
+        let datasource_role = AccessService::permit_table_list(&state, op_user_id, datasource_name.clone()).await?;
+
         let (total, items) = TableRepo::list(&state.pool, param).await.map_err(ApiError::unknown)?;
         let mut items: Vec<TableListResult> = items.into_iter().map(Into::into).collect();
 
@@ -63,6 +65,9 @@ impl TableService {
     }
 
     pub async fn create(state: &ApiState, param: TableCreateParam, op_user_id: i64) -> Result<(), ApiError> {
+        let datasource_name = param.datasource.clone();
+        AccessService::require_datasource_role(&state, op_user_id, Either::Right(datasource_name), RoleEnum::Write).await?;
+
         let entity = CreateTable {
             datasource_name: param.datasource,
             name: param.name,
@@ -79,7 +84,8 @@ impl TableService {
     }
 
     pub async fn update(state: &ApiState, param: TableUpdateParam, op_user_id: i64) -> Result<(), ApiError> {
-        Self::get_table(state, param.id).await?;
+        let table_id = param.id;
+        AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Write).await?;
 
         let entity = UpdateTable {
             id: param.id,

@@ -17,7 +17,13 @@ const PHYSICAL_TABLE_QUERY_LIMIT: usize = PHYSICAL_TABLE_LIMIT + 1;
 pub struct PhysicalService;
 
 impl PhysicalService {
-    pub async fn test_connection(_: &ApiState, param: TestDatasourceParam) -> Result<TestDatasourceResult, ApiError> {
+    pub async fn test_connection(state: &ApiState, param: TestDatasourceParam, op_user_id: i64) -> Result<TestDatasourceResult, ApiError> {
+        if let Some(id) = param.id {
+            AccessService::require_datasource_role(&state, op_user_id, Either::Left(id), RoleEnum::Write).await?;
+        } else {
+            AccessService::permit_datasource_create(&state, op_user_id).await?;
+        }
+
         DatasourceConnectOptions::new(&param.url, &param.username, &param.password.unwrap_or_default())
             .map_err(ApiError::Validation)?
             .test_connection()

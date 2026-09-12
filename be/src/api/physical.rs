@@ -1,11 +1,8 @@
-use axum::{Router, extract::State, routing::post};
+use axum::{extract::State, routing::post, Router};
 
-use crate::model::embed::RoleEnum;
-use crate::service::AccessService;
 use crate::{common::state::ApiState, http::extract::Authenticated, service::PhysicalService};
 use corers::api::ApiResult;
 use corers::axum::{ApiError, ValidatedJson};
-use either::Either;
 
 use super::*;
 
@@ -26,14 +23,7 @@ async fn test_connection(
     ValidatedJson(param): ValidatedJson<TestDatasourceParam>,
 ) -> Result<ApiResult<TestDatasourceResult>, ApiError> {
     let op_user_id = identity.user_id;
-
-    if let Some(id) = param.id {
-        AccessService::require_datasource_role(&state, op_user_id, Either::Left(id), RoleEnum::Write).await?;
-    } else {
-        AccessService::permit_datasource_create(&state, op_user_id).await?;
-    }
-
-    PhysicalService::test_connection(&state, param).await.map(Into::into)
+    PhysicalService::test_connection(&state, param, op_user_id).await.map(Into::into)
 }
 
 async fn list_table_physical(

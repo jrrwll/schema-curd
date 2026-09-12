@@ -1,4 +1,4 @@
-use axum::{Router, extract::State, routing::post};
+use axum::{extract::State, routing::post, Router};
 
 use corers::api::{ApiPageResult, ApiResult};
 use corers::axum::{ApiError, ValidatedJson};
@@ -47,7 +47,6 @@ async fn batch_grant_user(
     ValidatedJson(param): ValidatedJson<RoleBatchGrantUserParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
-
     RoleService::batch_grant_user(&state, param, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
@@ -57,7 +56,6 @@ async fn batch_grant_resource(
     ValidatedJson(param): ValidatedJson<RoleBatchGrantResourceParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
-
     RoleService::batch_grant_resource(&state, param, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
@@ -66,10 +64,8 @@ async fn revoke(
     State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<IdParam>,
 ) -> Result<ApiResult<()>, ApiError> {
-    let id = param.id;
     let op_user_id = identity.user_id;
-
-    RoleService::revoke(&state, id, op_user_id).await?;
+    RoleService::revoke(&state, param.id, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
 
@@ -77,10 +73,8 @@ async fn batch_revoke(
     State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<IdsParam>,
 ) -> Result<ApiResult<()>, ApiError> {
-    let ids = param.ids;
     let op_user_id = identity.user_id;
-
-    RoleService::batch_revoke(&state, ids, op_user_id).await?;
+    RoleService::batch_revoke(&state, param.ids, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
 
@@ -89,7 +83,6 @@ async fn update(
     ValidatedJson(param): ValidatedJson<RoleUpdateParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
-
     RoleService::update(&state, param, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }

@@ -21,7 +21,6 @@ async fn list_datasources(
     ValidatedJson(param): ValidatedJson<DiscoveryDatasourceListParam>,
 ) -> Result<ApiResult<Vec<DiscoveryDatasourceTableListResult>>, ApiError> {
     let op_user_id = identity.user_id;
-
     DiscoveryService::list_datasources(&state, param, op_user_id)
         .await
         .map(Into::into)
@@ -32,6 +31,5 @@ async fn list_tables(
     ValidatedJson(param): ValidatedJson<DiscoveryTableListParam>,
 ) -> Result<ApiResult<Vec<DiscoveryDatasourceTableListResult>>, ApiError> {
     let op_user_id = identity.user_id;
-
     DiscoveryService::list_tables(&state, param, op_user_id).await.map(Into::into)
 }
