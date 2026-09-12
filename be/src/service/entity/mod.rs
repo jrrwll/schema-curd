@@ -15,9 +15,9 @@ use crate::{
 
 use crate::model::TableEntity;
 use crate::model::embed::{RoleEnum, TableDetailConfig};
+use crate::service::AccessService;
 use query::build_list_plan;
 use value::validate_columns;
-use crate::service::AccessService;
 
 pub struct EntityService;
 
@@ -26,8 +26,8 @@ impl EntityService {
         state: &ApiState, param: EntityListParam, op_user_id: i64,
     ) -> Result<PageResult<Value>, ApiError> {
         let table_id = param.table_id;
-        let (table, _, _) = AccessService::require_table_role(
-            &state, op_user_id, Either::Left(table_id), RoleEnum::Read).await?;
+        let (table, _, _) =
+            AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Read).await?;
 
         let source = Self::get_source(state, table.datasource_name.clone()).await?;
         let config: TableDetailConfig = table.try_into()?;

@@ -28,8 +28,13 @@ impl PhysicalService {
     pub async fn list_table(
         state: &ApiState, datasource_name: String, op_user_id: i64,
     ) -> Result<Vec<PhysicalTableListResult>, ApiError> {
-        AccessService::require_datasource_role(&state, op_user_id, Either::Right(datasource_name.clone()), RoleEnum::Write)
-            .await?;
+        AccessService::require_datasource_role(
+            &state,
+            op_user_id,
+            Either::Right(datasource_name.clone()),
+            RoleEnum::Write,
+        )
+        .await?;
 
         let tables = MetaCacheService::get_tables(state.kv_store.clone(), &datasource_name)
             .await
@@ -41,8 +46,13 @@ impl PhysicalService {
     pub async fn refresh_table(
         state: &ApiState, datasource_name: String, op_user_id: i64,
     ) -> Result<Vec<PhysicalTableListResult>, ApiError> {
-        AccessService::require_datasource_role(&state, op_user_id, Either::Right(datasource_name.clone()), RoleEnum::Write)
-            .await?;
+        AccessService::require_datasource_role(
+            &state,
+            op_user_id,
+            Either::Right(datasource_name.clone()),
+            RoleEnum::Write,
+        )
+        .await?;
 
         let tables = Self::query_tables(state, datasource_name.clone()).await?;
         MetaCacheService::save_tables(state.kv_store.clone(), &datasource_name, &tables)
@@ -163,7 +173,7 @@ async fn permit_column_physical(
             Either::Right(datasource_name.clone()),
             RoleEnum::Write,
         )
-            .await?;
+        .await?;
 
         (datasource_name, table_name)
     } else {

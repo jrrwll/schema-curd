@@ -1,10 +1,6 @@
-use axum::{extract::State, routing::post, Router};
+use axum::{Router, extract::State, routing::post};
 
-use crate::{
-    common::state::ApiState,
-    http::extract::Authenticated,
-    service::EntityService,
-};
+use crate::{common::state::ApiState, http::extract::Authenticated, service::EntityService};
 use corers::api::{ApiPageResult, ApiResult};
 use corers::axum::{ApiError, ValidatedJson};
 use serde_json::Value;

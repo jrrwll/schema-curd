@@ -1,8 +1,8 @@
 mod datasource;
 
-use std::process;
-use rexl::argparse::{ArgParserRunnable, FromArgs, run_with_args_tree, RunWithArgs, ArgParserError};
+use rexl::argparse::{ArgParserError, ArgParserRunnable, FromArgs, RunWithArgs, run_with_args_tree};
 use serde::Serialize;
+use std::process;
 
 use datasource::*;
 
@@ -23,9 +23,7 @@ impl MainCli {
 
 impl ArgParserRunnable for MainCli {
     fn run(self) {
-        if self.help {
-
-        }
+        if self.help {}
         println!("schema-curd-cli: try 'schema-curd-cli --help' for more information");
         process::exit(1);
     }

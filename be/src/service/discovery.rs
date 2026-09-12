@@ -1,9 +1,7 @@
 use corers::axum::ApiError;
 use either::Either;
 
-use crate::{
-    api::*, common::state::ApiState, model::embed::RoleEnum, repo::DiscoveryRepo, service::AccessService,
-};
+use crate::{api::*, common::state::ApiState, model::embed::RoleEnum, repo::DiscoveryRepo, service::AccessService};
 
 pub struct DiscoveryService;
 

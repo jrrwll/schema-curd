@@ -82,7 +82,9 @@ impl DatasourceService {
         Ok(())
     }
 
-    pub async fn update(state: &ApiState, datasource_id: i64, param: DatasourceUpdateParam, op_user_id: i64) -> Result<(), ApiError> {
+    pub async fn update(
+        state: &ApiState, datasource_id: i64, param: DatasourceUpdateParam, op_user_id: i64,
+    ) -> Result<(), ApiError> {
         let entity = UpdateDatasource {
             id: datasource_id,
             url: param.url,

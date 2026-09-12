@@ -1,8 +1,8 @@
-use std::str::FromStr;
-use std::time::{Duration, Instant};
+use sqlx::Row;
 use sqlx::mysql::{MySqlConnectOptions, MySqlPoolOptions};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::Row;
+use std::str::FromStr;
+use std::time::{Duration, Instant};
 use tracing::{error, info};
 
 use crate::api::TestDatasourceResult;
@@ -16,8 +16,7 @@ pub enum DatasourceConnectOptions {
 impl DatasourceConnectOptions {
     pub fn new(url: &str, username: &str, password: &str) -> Result<Self, String> {
         if url.starts_with("mysql://") {
-            let options = MySqlConnectOptions::from_str(url)
-                .map_err(|_| "URL must be a valid MySQL URL".to_owned())?;
+            let options = MySqlConnectOptions::from_str(url).map_err(|_| "URL must be a valid MySQL URL".to_owned())?;
             if options.get_database().is_none_or(str::is_empty) {
                 return Err("URL must include a database name".to_owned());
             }
@@ -25,8 +24,8 @@ impl DatasourceConnectOptions {
             return Ok(Self::MySql(options));
         }
         if url.starts_with("postgres://") || url.starts_with("postgresql://") {
-            let options = PgConnectOptions::from_str(url)
-                .map_err(|_| "URL must be a valid PostgreSQL URL".to_owned())?;
+            let options =
+                PgConnectOptions::from_str(url).map_err(|_| "URL must be a valid PostgreSQL URL".to_owned())?;
             if options.get_database().is_none_or(str::is_empty) {
                 return Err("URL must include a database name".to_owned());
             }
@@ -78,9 +77,9 @@ impl DatasourceConnectOptions {
             select current_setting('server_version') as version, current_database() as database
             ",
         )
-            .fetch_one(&pool)
-            .await
-            .map_err(|source| connection_error("postgresql", started_at, source))?;
+        .fetch_one(&pool)
+        .await
+        .map_err(|source| connection_error("postgresql", started_at, source))?;
         pool.close().await;
 
         let cost_ms = started_at.elapsed().as_millis() as u64;

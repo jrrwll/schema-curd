@@ -1,17 +1,16 @@
-use std::collections::HashMap;
 use crate::common::error::ErrorCode;
 use crate::common::state::ApiState;
+use crate::model::embed::RoleEnum;
 use crate::model::{DatasourceEntity, RoleEntity, TableEntity, UserEntity};
 use crate::repo::{RoleRepo, UserRepo};
-use crate::service::{DatasourceService, TableService, datasource, RoleCacheService};
+use crate::service::{DatasourceService, RoleCacheService, TableService, datasource};
 use corers::axum::ApiError;
 use either::Either;
-use crate::model::embed::RoleEnum;
+use std::collections::HashMap;
 
 pub struct VerifyService;
 
 impl VerifyService {
-
     pub async fn get_datasource_and_role(
         state: &ApiState, user_id: i64, datasource_id_or_name: Either<i64, String>,
     ) -> Result<(DatasourceEntity, Option<RoleEnum>), ApiError> {

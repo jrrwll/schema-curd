@@ -4,7 +4,7 @@ use corers::time::format_datetime;
 
 use crate::{
     api::{DatasourceDetailResult, DatasourceListResult, EffectiveRoleEnum},
-    util::{deserialize_config},
+    util::deserialize_config,
 };
 
 #[derive(sqlx::FromRow)]

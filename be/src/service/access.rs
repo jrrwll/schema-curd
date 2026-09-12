@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use corers::axum::ApiError;
-use either::{Either};
+use either::Either;
 
 use crate::{
     common::{error::ErrorCode, state::ApiState},
@@ -14,13 +14,11 @@ pub struct AccessService;
 
 impl AccessService {
     // permits
-    pub async fn permit_datasource_create(state: &ApiState, user_id: i64) -> Result<(), ApiError>  {
+    pub async fn permit_datasource_create(state: &ApiState, user_id: i64) -> Result<(), ApiError> {
         Self::require_super_admin(&state, user_id).await
     }
 
-    pub async fn permit_table_delete(
-        state: &ApiState, user_id: i64, table_id: i64,
-    ) -> Result<(), ApiError> {
+    pub async fn permit_table_delete(state: &ApiState, user_id: i64, table_id: i64) -> Result<(), ApiError> {
         let table = Self::verify_table(state, Either::Left(table_id)).await?;
         let (_, datasource_role) =
             Self::get_datasource_and_role(state, user_id, Either::Right(table.datasource_name)).await?;
@@ -34,7 +32,8 @@ impl AccessService {
     pub async fn permit_table_list(
         state: &ApiState, user_id: i64, datasource_name: String,
     ) -> Result<Option<RoleEnum>, ApiError> {
-        let (_, datasource_role) = Self::get_datasource_and_role(state, user_id, Either::Right(datasource_name.clone())).await?;
+        let (_, datasource_role) =
+            Self::get_datasource_and_role(state, user_id, Either::Right(datasource_name.clone())).await?;
         if let Some(datasource_role) = datasource_role
             && datasource_role.implies(RoleEnum::Read)
         {
@@ -59,7 +58,8 @@ impl AccessService {
     pub async fn require_datasource_role(
         state: &ApiState, user_id: i64, datasource_id_or_name: Either<i64, String>, required_role: RoleEnum,
     ) -> Result<(DatasourceEntity, RoleEnum), ApiError> {
-        let (datasource, datasource_role) = Self::get_datasource_and_role(state, user_id, datasource_id_or_name).await?;
+        let (datasource, datasource_role) =
+            Self::get_datasource_and_role(state, user_id, datasource_id_or_name).await?;
         let Some(role) = datasource_role else {
             return Err(forbidden());
         };
