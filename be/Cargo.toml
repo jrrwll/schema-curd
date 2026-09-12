@@ -13,7 +13,7 @@ sqlite = ["sqlx/sqlite"]
 mysql = []
 
 [dependencies]
-corers = { version = "0.1.0", path = "../../corers", features = ["axum", "tracing", "jwt"]}
+corers = { version = "0.1.0", path = "../../corers", features = ["time", "axum", "tracing", "jwt"]}
 
 anyhow = "1.0.103"
 argon2 = { version = "0.5.3", features = ["std"]}
@@ -45,6 +45,7 @@ kevy-embedded = { version = "=4.1.1", default-features = false, features = ["cor
 indoc = "2.0.7"
 strum = { version = "0.28.0", features = ["derive"] }
 moka = { version = "0.12.16", features = ["future"] }
+either = { version = "1", features = ["serde", "std"] }
 
 [dev-dependencies]
 tower = { version = "0.5.3", features = ["util"] }

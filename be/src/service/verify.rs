@@ -1,102 +1,16 @@
 use std::collections::HashMap;
-
+use crate::common::error::ErrorCode;
+use crate::common::state::ApiState;
+use crate::model::{DatasourceEntity, RoleEntity, TableEntity, UserEntity};
+use crate::repo::{RoleRepo, UserRepo};
+use crate::service::{DatasourceService, TableService, datasource, RoleCacheService};
 use corers::axum::ApiError;
-use either::{Either};
+use either::Either;
+use crate::model::embed::RoleEnum;
 
-use crate::{
-    common::{error::ErrorCode, state::ApiState},
-    model::{DatasourceEntity, RoleEntity, TableEntity, UserEntity, embed::RoleEnum},
-    repo::{RoleRepo, UserRepo},
-    service::{DatasourceService, RoleCacheService, TableService},
-};
+pub struct VerifyService;
 
-pub struct AccessService;
-
-impl AccessService {
-    // permits
-    pub async fn permit_datasource_create(state: &ApiState, user_id: i64) -> Result<(), ApiError>  {
-        Self::require_super_admin(&state, user_id).await
-    }
-
-    pub async fn permit_table_delete(
-        state: &ApiState, user_id: i64, table_id: i64,
-    ) -> Result<(), ApiError> {
-        let table = Self::verify_table(state, Either::Left(table_id)).await?;
-        let (_, datasource_role) =
-            Self::get_datasource_and_role(state, user_id, Either::Right(table.datasource_name)).await?;
-        // need datasource write
-        if datasource_role.is_some_and(|v| v.implies(RoleEnum::Write)) {
-            return Ok(());
-        }
-        Err(forbidden())
-    }
-
-    pub async fn permit_table_list(
-        state: &ApiState, user_id: i64, datasource_name: String,
-    ) -> Result<Option<RoleEnum>, ApiError> {
-        let (_, datasource_role) = Self::get_datasource_and_role(state, user_id, Either::Right(datasource_name.clone())).await?;
-        if let Some(datasource_role) = datasource_role
-            && datasource_role.implies(RoleEnum::Read)
-        {
-            return Ok(Some(datasource_role));
-        }
-
-        let roles = Self::load_table_roles(state, user_id, datasource_name).await?;
-        if roles.is_empty() {
-            return Err(forbidden());
-        }
-        Ok(None)
-    }
-
-    pub async fn require_super_admin(state: &ApiState, user_id: i64) -> Result<(), ApiError> {
-        let user = Self::verify_user(state, user_id).await?;
-        if !user.super_admin {
-            return Err(forbidden());
-        }
-        Ok(())
-    }
-
-    pub async fn require_datasource_role(
-        state: &ApiState, user_id: i64, datasource_id_or_name: Either<i64, String>, required_role: RoleEnum,
-    ) -> Result<(DatasourceEntity, RoleEnum), ApiError> {
-        let (datasource, datasource_role) = Self::get_datasource_and_role(state, user_id, datasource_id_or_name).await?;
-        let Some(role) = datasource_role else {
-            return Err(forbidden());
-        };
-
-        if role.implies(required_role) {
-            return Ok((datasource, role));
-        }
-        Err(forbidden())
-    }
-
-    pub async fn require_table_role(
-        state: &ApiState, user_id: i64, table_id_or_name: Either<i64, (String, String)>, required_role: RoleEnum,
-    ) -> Result<(TableEntity, DatasourceEntity, RoleEnum), ApiError> {
-        let (table, datasource, table_role) = Self::get_table_and_role(state, user_id, table_id_or_name).await?;
-        let Some(role) = table_role else {
-            return Err(forbidden());
-        };
-
-        if role.implies(required_role) {
-            return Ok((table, datasource, role));
-        }
-        Err(forbidden())
-    }
-
-    // get
-    pub async fn has_datasource_role(
-        state: &ApiState, user_id: i64, datasource_id: i64, expect_role: RoleEnum,
-    ) -> Result<bool, ApiError> {
-        let roles = Self::load_datasource_roles(state, user_id).await?;
-        if roles.is_empty() {
-            return Ok(false);
-        }
-        if let Some(role) = roles.get(&datasource_id) {
-            return Ok(role.implies(expect_role));
-        }
-        Ok(false)
-    }
+impl VerifyService {
 
     pub async fn get_datasource_and_role(
         state: &ApiState, user_id: i64, datasource_id_or_name: Either<i64, String>,
@@ -114,25 +28,6 @@ impl AccessService {
             return Ok((datasource, None));
         };
         Ok((datasource, Some(*role)))
-    }
-
-    pub async fn get_table_and_role(
-        state: &ApiState, user_id: i64, table_id_or_name: Either<i64, (String, String)>,
-    ) -> Result<(TableEntity, DatasourceEntity, Option<RoleEnum>), ApiError> {
-        let table = Self::verify_table(state, table_id_or_name).await?;
-        let (datasource, datasource_role) =
-            Self::get_datasource_and_role(state, user_id, Either::Right(table.datasource_name.clone())).await?;
-        if let Some(role) = datasource_role
-            && role.implies(RoleEnum::Write)
-        {
-            return Ok((table, datasource, Some(role)));
-        }
-
-        let roles = Self::load_table_roles(state, user_id, table.datasource_name.clone()).await?;
-        let Some(role) = roles.get(&table.id) else {
-            return Ok((table, datasource, datasource_role));
-        };
-        Ok((table, datasource, Some(*role)))
     }
 
     // verify
@@ -173,6 +68,14 @@ impl AccessService {
             return Err(ErrorCode::table_disabled(table.id).into_error());
         }
         Ok(table)
+    }
+
+    pub async fn verify_datasource_table(
+        state: &ApiState, table_id_or_name: Either<i64, (String, String)>,
+    ) -> Result<(DatasourceEntity, TableEntity), ApiError> {
+        let table = Self::verify_table(state, table_id_or_name).await?;
+        let datasource = Self::verify_datasource(state, Either::Right(table.datasource_name.clone())).await?;
+        Ok((datasource, table))
     }
 
     // load cache

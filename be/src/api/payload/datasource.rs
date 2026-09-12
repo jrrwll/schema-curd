@@ -55,7 +55,7 @@ pub struct DatasourceCreateParam {
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct DatasourceUpdateParam {
-    pub id: i64,
+    pub name: String,
     pub url: String,
     #[serde(default)]
     pub username: String,

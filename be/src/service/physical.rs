@@ -1,21 +1,16 @@
-use std::{
-    str::FromStr,
-    time::{Duration, Instant},
-};
+use std::time::Instant;
 
 use corers::axum::ApiError;
-use sqlx::{
-    Row,
-    mysql::{MySqlConnectOptions, MySqlPoolOptions},
-    postgres::{PgConnectOptions, PgPoolOptions},
-};
+use either::Either;
 use tracing::{error, info};
 
+use crate::model::embed::RoleEnum;
+use crate::repo::DatasourceConnectOptions;
+use crate::service::{AccessService, MetaCacheService};
 use crate::{
     api::*,
     common::{constants::PHYSICAL_TABLE_LIMIT, error::ErrorCode, state::ApiState},
 };
-use crate::{repo::RuntimePool, service::MetaCacheService};
 
 const PHYSICAL_TABLE_QUERY_LIMIT: usize = PHYSICAL_TABLE_LIMIT + 1;
 
@@ -23,14 +18,19 @@ pub struct PhysicalService;
 
 impl PhysicalService {
     pub async fn test_connection(_: &ApiState, param: TestDatasourceParam) -> Result<TestDatasourceResult, ApiError> {
-        DatasourceConnectOptions::new(&param.url, &param.username, &param.password.unwrap_or_default())?
+        DatasourceConnectOptions::new(&param.url, &param.username, &param.password.unwrap_or_default())
+            .map_err(ApiError::Validation)?
             .test_connection()
             .await
+            .map_err(ApiError::Validation)
     }
 
     pub async fn list_table(
-        state: &ApiState, datasource_name: String,
+        state: &ApiState, datasource_name: String, op_user_id: i64,
     ) -> Result<Vec<PhysicalTableListResult>, ApiError> {
+        AccessService::require_datasource_role(&state, op_user_id, Either::Right(datasource_name.clone()), RoleEnum::Write)
+            .await?;
+
         let tables = MetaCacheService::get_tables(state.kv_store.clone(), &datasource_name)
             .await
             .map_err(ApiError::unknown)?
@@ -39,8 +39,11 @@ impl PhysicalService {
     }
 
     pub async fn refresh_table(
-        state: &ApiState, datasource_name: String,
+        state: &ApiState, datasource_name: String, op_user_id: i64,
     ) -> Result<Vec<PhysicalTableListResult>, ApiError> {
+        AccessService::require_datasource_role(&state, op_user_id, Either::Right(datasource_name.clone()), RoleEnum::Write)
+            .await?;
+
         let tables = Self::query_tables(state, datasource_name.clone()).await?;
         MetaCacheService::save_tables(state.kv_store.clone(), &datasource_name, &tables)
             .await
@@ -81,8 +84,10 @@ impl PhysicalService {
     }
 
     pub async fn list_column(
-        state: &ApiState, datasource_name: String, table_name: String,
+        state: &ApiState, param: PhysicalColumnListParam, op_user_id: i64,
     ) -> Result<Vec<PhysicalColumnListResult>, ApiError> {
+        let (datasource_name, table_name) = permit_column_physical(&state, param, op_user_id).await?;
+
         let columns = MetaCacheService::get_columns(state.kv_store.clone(), &datasource_name, &table_name)
             .await
             .map_err(ApiError::unknown)?
@@ -91,8 +96,10 @@ impl PhysicalService {
     }
 
     pub async fn refresh_column(
-        state: &ApiState, datasource_name: String, table_name: String,
+        state: &ApiState, param: PhysicalColumnListParam, op_user_id: i64,
     ) -> Result<Vec<PhysicalColumnListResult>, ApiError> {
+        let (datasource_name, table_name) = permit_column_physical(&state, param, op_user_id).await?;
+
         let columns = Self::query_columns(state, datasource_name.clone(), &table_name).await?;
         MetaCacheService::save_columns(state.kv_store.clone(), &datasource_name, &table_name, &columns)
             .await
@@ -137,93 +144,30 @@ impl PhysicalService {
     }
 }
 
-pub(super) enum DatasourceConnectOptions {
-    MySql(MySqlConnectOptions),
-    Postgres(PgConnectOptions),
-}
+async fn permit_column_physical(
+    state: &ApiState, param: PhysicalColumnListParam, op_user_id: i64,
+) -> Result<(String, String), ApiError> {
+    let (datasource_name, table_name) = if let Some(table_id) = param.table_id {
+        let (table, _, _) =
+            AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Write).await?;
 
-impl DatasourceConnectOptions {
-    pub fn new(url: &str, username: &str, password: &str) -> Result<Self, ApiError> {
-        if url.starts_with("mysql://") {
-            let options = MySqlConnectOptions::from_str(url)
-                .map_err(|_| ApiError::Validation("URL must be a valid MySQL URL".to_owned()))?;
-            if options.get_database().is_none_or(str::is_empty) {
-                return Err(ApiError::Validation("URL must include a database name".to_owned()));
-            }
-            let options = RuntimePool::connect_options_mysql(options, username, password);
-            return Ok(Self::MySql(options));
-        }
-        if url.starts_with("postgres://") || url.starts_with("postgresql://") {
-            let options = PgConnectOptions::from_str(url)
-                .map_err(|_| ApiError::Validation("URL must be a valid PostgreSQL URL".to_owned()))?;
-            if options.get_database().is_none_or(str::is_empty) {
-                return Err(ApiError::Validation("URL must include a database name".to_owned()));
-            }
-            let options = RuntimePool::connect_options_pg(options, username, password);
-            return Ok(DatasourceConnectOptions::Postgres(options));
-        }
-        Err(ApiError::Validation("URL must use the mysql, postgres, or postgresql protocol".to_owned()))
-    }
-
-    pub async fn test_connection(self) -> Result<TestDatasourceResult, ApiError> {
-        match self {
-            DatasourceConnectOptions::MySql(options) => Self::test_connection_mysql(options).await,
-            DatasourceConnectOptions::Postgres(options) => Self::test_connection_pg(options).await,
-        }
-    }
-
-    async fn test_connection_mysql(options: MySqlConnectOptions) -> Result<TestDatasourceResult, ApiError> {
-        let started_at = Instant::now();
-        info!(database_type = "mysql", "testing datasource connection");
-        let pool = MySqlPoolOptions::new()
-            .max_connections(1)
-            .acquire_timeout(Duration::from_secs(5))
-            .connect_with(options)
-            .await
-            .map_err(|source| connection_error("mysql", started_at, source))?;
-        let (version, database) = sqlx::query("select version() as version, database() as `database`")
-            .fetch_one(&pool)
-            .await
-            .map(|row| (row.get::<String, _>("version"), row.get::<String, _>("database")))
-            .map_err(|source| connection_error("mysql", started_at, source))?;
-        pool.close().await;
-
-        let cost_ms = started_at.elapsed().as_millis() as u64;
-        info!(database_type = "mysql", version, database, cost_ms, "datasource connection test succeeded");
-        Ok(TestDatasourceResult { database_type: "mysql".to_owned(), version, database, cost_ms })
-    }
-
-    async fn test_connection_pg(options: PgConnectOptions) -> Result<TestDatasourceResult, ApiError> {
-        let started_at = Instant::now();
-        info!(database_type = "postgresql", "testing datasource connection");
-        let pool = PgPoolOptions::new()
-            .max_connections(1)
-            .acquire_timeout(Duration::from_secs(5))
-            .connect_with(options)
-            .await
-            .map_err(|source| connection_error("postgresql", started_at, source))?;
-        let (version, database): (String, String) = sqlx::query_as(
-            "
-            select current_setting('server_version') as version, current_database() as database
-            ",
+        (table.datasource_name, table.table_name)
+    } else if let Some(table_name) = param.table {
+        let Some(datasource_name) = param.datasource else {
+            return Err(ApiError::Validation("Param datasource is required since table is passed".to_owned()));
+        };
+        // only permit datasource
+        AccessService::require_datasource_role(
+            &state,
+            op_user_id,
+            Either::Right(datasource_name.clone()),
+            RoleEnum::Write,
         )
-        .fetch_one(&pool)
-        .await
-        .map_err(|source| connection_error("postgresql", started_at, source))?;
-        pool.close().await;
+            .await?;
 
-        let cost_ms = started_at.elapsed().as_millis() as u64;
-        info!(database_type = "postgresql", version, database, cost_ms, "datasource connection test succeeded");
-        Ok(TestDatasourceResult { database_type: "postgresql".to_owned(), version, database, cost_ms })
-    }
-}
-
-fn connection_error(database_type: &str, started_at: Instant, source: sqlx::Error) -> ApiError {
-    error!(
-        database_type,
-        cost_ms = started_at.elapsed().as_millis() as u64,
-        error = ?source,
-        "datasource connection test failed"
-    );
-    ApiError::Validation(format!("Failed to connect to datasource: {source}"))
+        (datasource_name, table_name)
+    } else {
+        return Err(ApiError::Validation("Param table_id or table is required".to_owned()));
+    };
+    Ok((datasource_name, table_name))
 }

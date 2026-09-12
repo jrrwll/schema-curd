@@ -1,5 +1,5 @@
 use corers::{api::PageResult, axum::ApiError};
-
+use either::Either;
 use crate::{
     api::*,
     common::{error::ErrorCode, state::ApiState},
@@ -37,9 +37,11 @@ impl TableService {
         Ok((total, items).into())
     }
 
-    pub async fn detail(state: &ApiState, id: i64, table_role: RoleEnum) -> Result<TableDetailResult, ApiError> {
-        let entity = Self::get_table(state, id).await?;
-        let mut result: TableDetailResult = entity.try_into()?;
+    pub async fn detail(state: &ApiState, id: i64, op_user_id: i64) -> Result<TableDetailResult, ApiError> {
+        let (table, datasource, table_role) =
+            AccessService::require_table_role(&state, op_user_id, Either::Left(id), RoleEnum::Read).await?;
+
+        let mut result: TableDetailResult = (table, datasource).try_into()?;
         result.base.effective_role = Some(table_role).into();
         Ok(result)
     }
@@ -96,7 +98,8 @@ impl TableService {
     }
 
     pub async fn delete(state: &ApiState, id: i64, op_user_id: i64) -> Result<(), ApiError> {
-        Self::get_table(state, id).await?;
+        AccessService::permit_table_delete(&state, op_user_id, id).await?;
+
         let op_ok = TableRepo::delete(&state.pool, id, op_user_id)
             .await
             .map_err(ApiError::unknown)?;

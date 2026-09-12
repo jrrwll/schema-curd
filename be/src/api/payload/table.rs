@@ -39,6 +39,8 @@ pub struct TableDetailResult {
     pub table_name: String,
     pub table_config: TableConfig,
     pub columns_config: Vec<ColumnConfig>,
+    pub datasource_id: i64,
+    pub datasource_display_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]

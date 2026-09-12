@@ -1,10 +1,12 @@
 use chrono::NaiveDateTime;
 use corers::axum::ApiError;
+use corers::time::format_datetime;
 
+use crate::model::DatasourceEntity;
 use crate::{
     api::{EffectiveRoleEnum, TableDetailResult, TableListResult},
     model::embed::{ColumnConfig, TableConfig},
-    util::{deserialize_config, format_datetime},
+    util::deserialize_config,
 };
 
 #[derive(sqlx::FromRow)]
@@ -65,14 +67,21 @@ impl From<TableEntity> for TableListResult {
     }
 }
 
-impl TryFrom<TableEntity> for TableDetailResult {
+impl TryFrom<(TableEntity, DatasourceEntity)> for TableDetailResult {
     type Error = ApiError;
 
-    fn try_from(value: TableEntity) -> Result<Self, Self::Error> {
-        let table_config: TableConfig = deserialize_config(value.table_config.clone())?;
-        let columns_config: Vec<ColumnConfig> = deserialize_config(value.columns_config.clone())?;
+    fn try_from((table, datasource): (TableEntity, DatasourceEntity)) -> Result<Self, Self::Error> {
+        let table_config: TableConfig = deserialize_config(table.table_config.clone())?;
+        let columns_config: Vec<ColumnConfig> = deserialize_config(table.columns_config.clone())?;
 
-        let table_name = value.table_name.clone();
-        Ok(Self { base: value.into(), table_name, table_config, columns_config })
+        let table_name = table.table_name.clone();
+        Ok(Self {
+            base: table.into(),
+            table_name,
+            table_config,
+            columns_config,
+            datasource_id: datasource.id,
+            datasource_display_name: datasource.display_name,
+        })
     }
 }

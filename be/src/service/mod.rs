@@ -21,3 +21,4 @@ mod physical;
 mod role;
 mod table;
 mod user;
+mod verify;

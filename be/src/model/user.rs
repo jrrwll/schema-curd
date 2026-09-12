@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
+use corers::time::format_datetime;
 
-use crate::{api::UserListResult, util::format_datetime};
+use crate::{api::UserListResult};
 
 #[derive(sqlx::FromRow)]
 pub struct UserEntity {

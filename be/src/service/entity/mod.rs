@@ -4,6 +4,7 @@ mod value;
 use std::sync::Arc;
 
 use corers::{api::PageResult, axum::ApiError};
+use either::Either;
 use serde_json::Value;
 
 use crate::{
@@ -13,16 +14,21 @@ use crate::{
 };
 
 use crate::model::TableEntity;
-use crate::model::embed::TableDetailConfig;
+use crate::model::embed::{RoleEnum, TableDetailConfig};
 use query::build_list_plan;
 use value::validate_columns;
+use crate::service::AccessService;
 
 pub struct EntityService;
 
 impl EntityService {
     pub async fn list(
-        state: &ApiState, table: TableEntity, param: EntityListParam,
+        state: &ApiState, param: EntityListParam, op_user_id: i64,
     ) -> Result<PageResult<Value>, ApiError> {
+        let table_id = param.table_id;
+        let (table, _, _) = AccessService::require_table_role(
+            &state, op_user_id, Either::Left(table_id), RoleEnum::Read).await?;
+
         let source = Self::get_source(state, table.datasource_name.clone()).await?;
         let config: TableDetailConfig = table.try_into()?;
         let datasource_config = &source.config.config;
@@ -35,7 +41,11 @@ impl EntityService {
         Ok((total, items).into())
     }
 
-    pub async fn create(state: &ApiState, table: TableEntity, param: EntityCreateParam) -> Result<(), ApiError> {
+    pub async fn create(state: &ApiState, param: EntityCreateParam, op_user_id: i64) -> Result<(), ApiError> {
+        let table_id = param.table_id;
+        let (table, _, _) =
+            AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Write).await?;
+
         let source = Self::get_source(state, table.datasource_name.clone()).await?;
         let config: TableDetailConfig = table.try_into()?;
         let datasource_config = &source.config.config;
@@ -58,8 +68,12 @@ impl EntityService {
     }
 
     pub async fn update(
-        state: &ApiState, table: TableEntity, param: EntityUpdateParam,
+        state: &ApiState, param: EntityUpdateParam, op_user_id: i64,
     ) -> Result<EntityUpdateResult, ApiError> {
+        let table_id = param.table_id;
+        let (table, _, _) =
+            AccessService::require_table_role(&state, op_user_id, Either::Left(table_id), RoleEnum::Write).await?;
+
         let source = Self::get_source(state, table.datasource_name.clone()).await?;
         let config: TableDetailConfig = table.try_into()?;
         let datasource_config = &source.config.config;

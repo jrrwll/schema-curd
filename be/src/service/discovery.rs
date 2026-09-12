@@ -1,7 +1,8 @@
 use corers::axum::ApiError;
+use either::Either;
 
 use crate::{
-    api::*, common::state::ApiState, model::embed::RoleEnum, repo::DiscoveryRepo, service::AccessService, util::Either,
+    api::*, common::state::ApiState, model::embed::RoleEnum, repo::DiscoveryRepo, service::AccessService,
 };
 
 pub struct DiscoveryService;
@@ -67,7 +68,7 @@ impl DiscoveryService {
         }
 
         if let Some(table_id) = param.table_id {
-            let (table, _) =
+            let (table, _, _) =
                 AccessService::require_table_role(state, op_user_id, Either::Left(table_id), RoleEnum::Read).await?;
             return Ok(vec![DiscoveryDatasourceTableListResult {
                 id: table.id,

@@ -1,9 +1,10 @@
 use chrono::NaiveDateTime;
 use corers::axum::ApiError;
+use corers::time::format_datetime;
 
 use crate::{
     api::{DatasourceDetailResult, DatasourceListResult, EffectiveRoleEnum},
-    util::{deserialize_config, format_datetime},
+    util::{deserialize_config},
 };
 
 #[derive(sqlx::FromRow)]

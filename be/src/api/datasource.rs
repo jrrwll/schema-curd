@@ -6,15 +6,15 @@ use axum::{
 
 use corers::api::{ApiPageResult, ApiResult};
 use corers::axum::{ApiError, ValidatedJson, ValidatedQuery};
+use either::Either;
 
 use crate::{
     common::state::ApiState,
     http::extract::Authenticated,
     model::embed::RoleEnum,
     service::{AccessService, DatasourceService},
-    util::Either,
 };
-
+use crate::http::extract::CurrentSuperAdmin;
 use super::*;
 
 pub fn get_routes() -> Router<ApiState> {
@@ -46,17 +46,16 @@ async fn detail(
     let id = param.id;
     let op_user_id = identity.user_id;
 
-    let role = AccessService::require_datasource_role(&state, op_user_id, Either::Left(id), RoleEnum::Read).await?;
+    let (_, role) = AccessService::require_datasource_role(&state, op_user_id, Either::Left(id), RoleEnum::Read).await?;
     DatasourceService::detail(&state, id, role).await.map(Into::into)
 }
 
 async fn create(
-    State(state): State<ApiState>, Authenticated(identity): Authenticated,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<DatasourceCreateParam>,
 ) -> Result<ApiResult<()>, ApiError> {
     let op_user_id = identity.user_id;
 
-    AccessService::require_super_admin(&state, op_user_id).await?;
     DatasourceService::create(&state, param, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
@@ -65,21 +64,23 @@ async fn update(
     State(state): State<ApiState>, Authenticated(identity): Authenticated,
     ValidatedJson(param): ValidatedJson<DatasourceUpdateParam>,
 ) -> Result<ApiResult<()>, ApiError> {
-    let id = param.id;
+    let datasource_name = param.name.clone();
     let op_user_id = identity.user_id;
 
-    AccessService::require_datasource_role(&state, op_user_id, Either::Left(id), RoleEnum::Write).await?;
-    DatasourceService::update(&state, param, op_user_id).await?;
+    let (datasource, _) = AccessService::require_datasource_role(
+        &state, op_user_id, Either::Right(datasource_name), RoleEnum::Write).await?;
+    DatasourceService::update(&state, datasource.id, param, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }
 
 async fn delete(
-    State(state): State<ApiState>, Authenticated(identity): Authenticated, ValidatedJson(param): ValidatedJson<IdParam>,
+    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin, ValidatedJson(param): ValidatedJson<NameParam>,
 ) -> Result<ApiResult<()>, ApiError> {
-    let id = param.id;
+    let datasource_name = param.name;
     let op_user_id = identity.user_id;
 
-    AccessService::require_super_admin(&state, op_user_id).await?;
-    DatasourceService::delete(&state, id, op_user_id).await?;
+    let datasource = AccessService::verify_datasource(
+        &state, Either::Right(datasource_name)).await?;
+    DatasourceService::delete(&state, datasource, op_user_id).await?;
     Ok(ApiResult::ok(None))
 }

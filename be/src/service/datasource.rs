@@ -82,11 +82,9 @@ impl DatasourceService {
         Ok(())
     }
 
-    pub async fn update(state: &ApiState, param: DatasourceUpdateParam, op_user_id: i64) -> Result<(), ApiError> {
-        Self::get_datasource(state, param.id).await?;
-
+    pub async fn update(state: &ApiState, datasource_id: i64, param: DatasourceUpdateParam, op_user_id: i64) -> Result<(), ApiError> {
         let entity = UpdateDatasource {
-            id: param.id,
+            id: datasource_id,
             url: param.url,
             username: param.username,
             password: param.password,
@@ -103,10 +101,8 @@ impl DatasourceService {
         Ok(())
     }
 
-    pub async fn delete(state: &ApiState, id: i64, op_user_id: i64) -> Result<(), ApiError> {
-        let datasource_name = Self::get_datasource(state, id).await?.name;
-
-        let op_ok = DatasourceRepo::delete(&state.pool, id, datasource_name, op_user_id)
+    pub async fn delete(state: &ApiState, datasource: DatasourceEntity, op_user_id: i64) -> Result<(), ApiError> {
+        let op_ok = DatasourceRepo::delete(&state.pool, datasource.id, datasource.name, op_user_id)
             .await
             .map_err(ApiError::unknown)?;
         if !op_ok {

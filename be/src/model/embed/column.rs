@@ -36,9 +36,11 @@ pub struct ColumnConfig {
     pub sortable: bool,
     #[serde(default)]
     pub hidden_on_create: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub hidden_on_list: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pattern: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub search_default_value: Option<Value>,
 }
 

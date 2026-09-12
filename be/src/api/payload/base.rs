@@ -15,6 +15,12 @@ pub struct IdsParam {
     pub ids: Vec<i64>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate)]
+pub struct NameParam {
+    #[validate(length(min = 1, max = 100))]
+    pub name: String,
+}
+
 #[derive(Debug, Default, Deserialize, Serialize, Validate)]
 pub struct PageParam {
     #[validate(range(min = 1, max = "MAX_PAGE_NO"))]

@@ -80,9 +80,11 @@ where
             query.push(json_function).push("(");
             {
                 let mut separated = query.separated(", ");
-                for (column_name, _) in &table.columns {
-                    separated.push_bind(column_name.clone());
-                    separated.push(identifier(&column_name, quote));
+                for (column_name, column_config) in &table.columns {
+                    if !column_config.hidden_on_list {
+                        separated.push_bind(column_name.clone());
+                        separated.push(identifier(&column_name, quote));
+                    }
                 }
             }
             query.push(")");
