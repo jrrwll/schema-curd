@@ -1,18 +1,13 @@
 use axum::{
+    Router,
     extract::State,
     routing::{get, post},
-    Router,
 };
 
 use corers::api::{ApiPageResult, ApiResult};
 use corers::axum::{ApiError, ValidatedJson, ValidatedQuery};
 
-use crate::{
-    common::state::ApiState,
-    http::extract::Authenticated
-    ,
-    service::TableService,
-};
+use crate::{common::state::ApiState, http::extract::Authenticated, service::TableService};
 
 use super::*;
 
@@ -33,9 +28,7 @@ async fn list(
     ValidatedJson(param): ValidatedJson<TableListParam>,
 ) -> Result<ApiPageResult<TableListResult>, ApiError> {
     let op_user_id = identity.user_id;
-    TableService::list(&state, param, op_user_id)
-        .await
-        .map(Into::into)
+    TableService::list(&state, param, op_user_id).await.map(Into::into)
 }
 
 async fn detail(

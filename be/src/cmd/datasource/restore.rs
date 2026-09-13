@@ -21,7 +21,6 @@ pub struct DatasourceRestoreCli {
 
 impl DatasourceRestoreCli {
     pub async fn run_async(self) {
-
         let file = match File::open(&self.input_path) {
             Ok(v) => v,
             Err(e) => {
@@ -35,17 +34,20 @@ impl DatasourceRestoreCli {
             Err(e) => {
                 eprintln!("failed to parse file {}: {}", &self.input_path, e);
                 process::exit(1)
-            },
+            }
         };
         if datasources.is_empty() {
             println!("no datasource to restore");
-            return
+            return;
         }
 
         let state = get_api_state();
-        let datasource_names = datasources.iter()
-            .map(|v|v.name.clone()).collect::<HashSet<_>>()
-            .into_iter().collect::<Vec<String>>();
+        let datasource_names = datasources
+            .iter()
+            .map(|v| v.name.clone())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<String>>();
         match select_exist_names(&state.pool, datasource_names).await {
             Ok(exist_names) => {
                 if !exist_names.is_empty() {
@@ -75,15 +77,18 @@ async fn select_exist_names(pool: &DbPool, names: Vec<String>) -> Result<Vec<Str
         from datasource_info
         where deleted_at = 0
             and name in (
-        "
+        ",
     );
     let mut separated = query_builder.separated(", ");
     for name in &names {
         separated.push_bind(name);
     }
     query_builder.push(")");
-    query_builder.build_query_scalar().fetch_all(pool)
-        .await.map_err(|e| e.to_string())
+    query_builder
+        .build_query_scalar()
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 async fn restore_all(pool: &DbPool, datasources: Vec<DatasourceBackupRecord>) -> Result<(), String> {
@@ -96,42 +101,45 @@ async fn restore_all(pool: &DbPool, datasources: Vec<DatasourceBackupRecord>) ->
     };
     for datasource in datasources {
         let datasource_name = datasource.name.clone();
-        let config = serialize_config(&datasource.config)
-            .map_err(|e|e.to_string())?;
+        let config = serialize_config(&datasource.config).map_err(|e| e.to_string())?;
         let rows_affected = sqlx::query!(
-                "
+            "
                 insert into datasource_info
                     (name, display_name, url, username, password, config)
                 values (?, ?, ?, ?, ?, ?)
                 ",
-                datasource.name,
-                datasource.display_name,
-                datasource.url,
-                datasource.username,
-                datasource.password,
-                config
-            ).execute(&mut *transaction).await
-            .map(|v| v.rows_affected())
-            .map_err(|e| e.to_string())?;
+            datasource.name,
+            datasource.display_name,
+            datasource.url,
+            datasource.username,
+            datasource.password,
+            config
+        )
+        .execute(&mut *transaction)
+        .await
+        .map(|v| v.rows_affected())
+        .map_err(|e| e.to_string())?;
         if rows_affected == 0 {
             transaction.rollback().await.map_err(|e| e.to_string())?;
             return Err(format!("failed to insert datasource: {}", datasource.name));
         }
 
-        let tables = datasource.tables.into_iter().map(|table| {
-            let table_config = serialize_config(&table.config)
-                .map_err(|e|e.to_string())?;
-            let columns_config = serialize_config(&table.columns)
-                .map_err(|e|e.to_string())?;
-            Ok(CreateTable {
-                datasource_name: datasource_name.clone(),
-                name: table.name,
-                display_name: table.display_name,
-                table_name: table.table_name,
-                table_config,
-                columns_config,
+        let tables = datasource
+            .tables
+            .into_iter()
+            .map(|table| {
+                let table_config = serialize_config(&table.config).map_err(|e| e.to_string())?;
+                let columns_config = serialize_config(&table.columns).map_err(|e| e.to_string())?;
+                Ok(CreateTable {
+                    datasource_name: datasource_name.clone(),
+                    name: table.name,
+                    display_name: table.display_name,
+                    table_name: table.table_name,
+                    table_config,
+                    columns_config,
+                })
             })
-        }).collect::<Result<Vec<CreateTable>, String>>()?;
+            .collect::<Result<Vec<CreateTable>, String>>()?;
         let table_cnt = tables.len() as u64;
 
         let mut table_query_builder = QueryBuilder::new(
@@ -148,12 +156,18 @@ async fn restore_all(pool: &DbPool, datasources: Vec<DatasourceBackupRecord>) ->
                 .push_bind(entity.table_config)
                 .push_bind(entity.columns_config);
         });
-        let rows_affected = table_query_builder.build().execute(&mut *transaction).await
+        let rows_affected = table_query_builder
+            .build()
+            .execute(&mut *transaction)
+            .await
             .map(|v| v.rows_affected())
             .map_err(|e| e.to_string())?;
         if rows_affected != table_cnt {
             transaction.rollback().await.map_err(|e| e.to_string())?;
-            return Err(format!("failed to insert table, since expect rows_affected = {} but got {}", table_cnt, rows_affected));
+            return Err(format!(
+                "failed to insert table, since expect rows_affected = {} but got {}",
+                table_cnt, rows_affected
+            ));
         }
     }
     Ok(())

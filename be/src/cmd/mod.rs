@@ -1,6 +1,6 @@
 mod datasource;
 
-use rexl::argparse::{run_with_args_tree, ArgParserRunnable, FromArgs, RunWithArgs};
+use rexl::argparse::{ArgParserRunnable, FromArgs, RunWithArgs, run_with_args_tree};
 use serde::Serialize;
 use std::process;
 

@@ -1,7 +1,7 @@
 use crate::{
     api::*,
     common::{error::ErrorCode, state::ApiState},
-    model::{embed::RoleEnum, CreateDatasource, DatasourceEntity, UpdateDatasource},
+    model::{CreateDatasource, DatasourceEntity, UpdateDatasource, embed::RoleEnum},
     repo::DatasourceRepo,
     service::{AccessService, MetaService},
     util::serialize_config,
@@ -85,12 +85,14 @@ impl DatasourceService {
         Ok(())
     }
 
-    pub async fn update(
-        state: &ApiState, param: DatasourceUpdateParam, op_user_id: i64,
-    ) -> Result<(), ApiError> {
-        let (datasource, _) =
-            AccessService::require_datasource_role(&state, op_user_id, Either::Right(param.name.clone()), RoleEnum::Write)
-                .await?;
+    pub async fn update(state: &ApiState, param: DatasourceUpdateParam, op_user_id: i64) -> Result<(), ApiError> {
+        let (datasource, _) = AccessService::require_datasource_role(
+            &state,
+            op_user_id,
+            Either::Right(param.name.clone()),
+            RoleEnum::Write,
+        )
+        .await?;
         let datasource_id = datasource.id;
 
         let entity = UpdateDatasource {

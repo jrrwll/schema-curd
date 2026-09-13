@@ -66,7 +66,8 @@ impl TableService {
 
     pub async fn create(state: &ApiState, param: TableCreateParam, op_user_id: i64) -> Result<(), ApiError> {
         let datasource_name = param.datasource.clone();
-        AccessService::require_datasource_role(&state, op_user_id, Either::Right(datasource_name), RoleEnum::Write).await?;
+        AccessService::require_datasource_role(&state, op_user_id, Either::Right(datasource_name), RoleEnum::Write)
+            .await?;
 
         let entity = CreateTable {
             datasource_name: param.datasource,

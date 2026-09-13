@@ -52,28 +52,32 @@ impl DatasourceBackupCli {
             };
             table_cnt += tables.len();
 
-            let tables = tables.into_iter().map(|table| {
-                let config: TableConfig = match deserialize_config(table.table_config) {
-                    Ok(config) => config,
-                    Err(e) => {
-                        eprintln!("deserialize table table_config failed: {}", e);
-                        process::exit(1)
+            let tables = tables
+                .into_iter()
+                .map(|table| {
+                    let config: TableConfig = match deserialize_config(table.table_config) {
+                        Ok(config) => config,
+                        Err(e) => {
+                            eprintln!("deserialize table table_config failed: {}", e);
+                            process::exit(1)
+                        }
+                    };
+                    let columns: Vec<ColumnConfig> = match deserialize_config(table.columns_config) {
+                        Ok(config) => config,
+                        Err(e) => {
+                            eprintln!("deserialize table columns_config failed: {}", e);
+                            process::exit(1)
+                        }
+                    };
+                    TableBackupRecord {
+                        name: table.name,
+                        display_name: table.display_name,
+                        table_name: table.table_name,
+                        config,
+                        columns,
                     }
-                };
-                let columns: Vec<ColumnConfig> = match deserialize_config(table.columns_config) {
-                    Ok(config) => config,
-                    Err(e) => {
-                        eprintln!("deserialize table columns_config failed: {}", e);
-                        process::exit(1)
-                    }
-                };
-                TableBackupRecord {
-                    name: table.name,
-                    display_name: table.display_name,
-                    table_name: table.table_name,
-                    config, columns,
-                }
-            }).collect();
+                })
+                .collect();
             results.push(DatasourceBackupRecord {
                 name: datasource.name,
                 display_name: datasource.display_name,
@@ -98,8 +102,7 @@ impl DatasourceBackupCli {
             process::exit(1)
         };
 
-        println!("success to backup total {} datasources and {} tables",
-            results.len(), table_cnt);
+        println!("success to backup total {} datasources and {} tables", results.len(), table_cnt);
     }
 }
 
@@ -111,7 +114,7 @@ pub struct DatasourceBackupRecord {
     pub username: String,
     pub password: String,
     pub config: DatasourceConfig,
-    pub tables: Vec<TableBackupRecord>
+    pub tables: Vec<TableBackupRecord>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -120,7 +123,7 @@ pub struct TableBackupRecord {
     pub display_name: String,
     pub table_name: String,
     pub config: TableConfig,
-    pub columns: Vec<ColumnConfig>
+    pub columns: Vec<ColumnConfig>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -151,8 +154,10 @@ impl DatasourceRecord {
             from datasource_info
             where disabled = 0 and deleted_at = 0
             "
-        ).fetch_all(pool).await
-            .map_err(|e| e.to_string())
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())
     }
 }
 
@@ -167,7 +172,9 @@ impl TableRecord {
                 and datasource_name = ?
             ",
             datasource_name
-        ).fetch_all(pool).await
-            .map_err(|e| e.to_string())
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())
     }
 }

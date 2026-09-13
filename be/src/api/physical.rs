@@ -1,4 +1,4 @@
-use axum::{extract::State, routing::post, Router};
+use axum::{Router, extract::State, routing::post};
 
 use crate::{common::state::ApiState, http::extract::Authenticated, service::PhysicalService};
 use corers::api::ApiResult;
@@ -23,7 +23,9 @@ async fn test_connection(
     ValidatedJson(param): ValidatedJson<TestDatasourceParam>,
 ) -> Result<ApiResult<TestDatasourceResult>, ApiError> {
     let op_user_id = identity.user_id;
-    PhysicalService::test_connection(&state, param, op_user_id).await.map(Into::into)
+    PhysicalService::test_connection(&state, param, op_user_id)
+        .await
+        .map(Into::into)
 }
 
 async fn list_table_physical(

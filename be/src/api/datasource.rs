@@ -1,7 +1,7 @@
 use axum::{
+    Router,
     extract::State,
     routing::{get, post},
-    Router,
 };
 
 use corers::api::{ApiPageResult, ApiResult};
@@ -9,12 +9,7 @@ use corers::axum::{ApiError, ValidatedJson, ValidatedQuery};
 
 use super::*;
 use crate::http::extract::CurrentSuperAdmin;
-use crate::{
-    common::state::ApiState,
-    http::extract::Authenticated
-    ,
-    service::DatasourceService,
-};
+use crate::{common::state::ApiState, http::extract::Authenticated, service::DatasourceService};
 
 pub fn get_routes() -> Router<ApiState> {
     Router::new().nest(
