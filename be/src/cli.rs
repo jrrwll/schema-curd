@@ -3,7 +3,6 @@ pub mod cmd;
 use std::env;
 use std::sync::OnceLock;
 
-use rexl::argparse::RunWithArgs;
 use validator::Validate;
 
 use schema_curd::common::config::AppConfig;
