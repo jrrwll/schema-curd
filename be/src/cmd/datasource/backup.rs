@@ -1,10 +1,9 @@
 use crate::get_api_state;
-use redis::AsyncCommands;
 use rexl::argparse::FromArgs;
 use schema_curd::common::db::DbPool;
 use schema_curd::model::embed::{ColumnConfig, DatasourceConfig, TableConfig};
 use schema_curd::util::deserialize_config;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufWriter;
 use std::process;
@@ -104,24 +103,24 @@ impl DatasourceBackupCli {
     }
 }
 
-#[derive(Debug, Serialize)]
-struct DatasourceBackupRecord {
-    name: String,
-    display_name: String,
-    url: String,
-    username: String,
-    password: String,
-    config: DatasourceConfig,
-    tables: Vec<TableBackupRecord>
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DatasourceBackupRecord {
+    pub name: String,
+    pub display_name: String,
+    pub url: String,
+    pub username: String,
+    pub password: String,
+    pub config: DatasourceConfig,
+    pub tables: Vec<TableBackupRecord>
 }
 
-#[derive(Debug, Serialize)]
-struct TableBackupRecord {
-    name: String,
-    display_name: String,
-    table_name: String,
-    config: TableConfig,
-    columns: Vec<ColumnConfig>
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TableBackupRecord {
+    pub name: String,
+    pub display_name: String,
+    pub table_name: String,
+    pub config: TableConfig,
+    pub columns: Vec<ColumnConfig>
 }
 
 #[derive(Debug, sqlx::FromRow)]
