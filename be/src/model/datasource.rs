@@ -1,11 +1,4 @@
 use chrono::NaiveDateTime;
-use corers::axum::ApiError;
-use corers::time::format_datetime;
-
-use crate::{
-    api::{DatasourceDetailResult, DatasourceListResult, EffectiveRoleEnum},
-    util::deserialize_config,
-};
 
 #[derive(sqlx::FromRow)]
 pub struct DatasourceEntity {
@@ -50,31 +43,4 @@ pub struct MetaDatasource {
     pub username: String,
     pub password: String,
     pub config: Option<String>,
-}
-
-impl From<DatasourceEntity> for DatasourceListResult {
-    fn from(value: DatasourceEntity) -> Self {
-        Self {
-            id: value.id,
-            created_at: format_datetime(value.created_at),
-            updated_at: format_datetime(value.updated_at),
-            name: value.name,
-            display_name: value.display_name,
-            effective_role: EffectiveRoleEnum::Read,
-        }
-    }
-}
-
-impl TryFrom<DatasourceEntity> for DatasourceDetailResult {
-    type Error = ApiError;
-
-    fn try_from(value: DatasourceEntity) -> Result<Self, Self::Error> {
-        Ok(Self {
-            url: value.url.clone(),
-            username: value.username.clone(),
-            password_configured: !value.password.clone().is_empty(),
-            config: deserialize_config(value.config.clone())?,
-            base: value.into(),
-        })
-    }
 }

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
+use crate::model::DiscoveryDatasourceTable;
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct DiscoveryDatasourceListParam {
@@ -19,4 +20,10 @@ pub struct DiscoveryTableListParam {
     pub datasource_id: Option<i64>,
     pub table_id: Option<i64>,
     pub keyword: Option<String>,
+}
+
+impl From<DiscoveryDatasourceTable> for DiscoveryDatasourceTableListResult {
+    fn from(value: DiscoveryDatasourceTable) -> Self {
+        Self { id: value.id, name: value.name, display_name: value.display_name }
+    }
 }

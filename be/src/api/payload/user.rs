@@ -1,6 +1,7 @@
+use corers::time::format_datetime;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-
+use crate::model::UserEntity;
 use super::PageParam;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -53,4 +54,18 @@ pub struct UserUpdateParam {
     pub password: Option<String>,
     #[serde(default)]
     pub display_name: Option<String>,
+}
+
+impl From<UserEntity> for UserListResult {
+    fn from(value: UserEntity) -> Self {
+        Self {
+            id: value.id,
+            created_at: format_datetime(value.created_at),
+            updated_at: format_datetime(value.updated_at),
+            name: value.name,
+            display_name: value.display_name,
+            disabled: value.disabled,
+            super_admin: value.super_admin,
+        }
+    }
 }

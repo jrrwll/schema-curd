@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use crate::model::embed::DataType;
+use crate::model::{MySqlPhysicalColumnRow, PhysicalTableRow, PostgresPhysicalColumnRow};
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct TestDatasourceParam {
@@ -47,4 +48,34 @@ pub struct PhysicalColumnListResult {
     pub data_type: DataType,
     pub optional: bool,
     pub primary_key: bool,
+}
+
+impl From<PhysicalTableRow> for PhysicalTableListResult {
+    fn from(value: PhysicalTableRow) -> Self {
+        Self { name: value.name, comment: value.comment }
+    }
+}
+
+impl From<MySqlPhysicalColumnRow> for PhysicalColumnListResult {
+    fn from(value: MySqlPhysicalColumnRow) -> Self {
+        Self {
+            name: value.name,
+            comment: value.comment,
+            data_type: DataType::from_database_type(&value.database_type),
+            optional: value.nullable != 0 || value.has_default != 0 || value.generated_flag != 0,
+            primary_key: value.primary_key != 0,
+        }
+    }
+}
+
+impl From<PostgresPhysicalColumnRow> for PhysicalColumnListResult {
+    fn from(value: PostgresPhysicalColumnRow) -> Self {
+        Self {
+            name: value.name,
+            comment: value.comment,
+            data_type: DataType::from_database_type(&value.database_type),
+            optional: value.nullable || value.has_default || value.generated_flag,
+            primary_key: value.primary_key,
+        }
+    }
 }

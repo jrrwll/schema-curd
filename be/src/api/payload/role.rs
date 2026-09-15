@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use crate::model::embed::{ResourceTypeEnum, RoleEnum};
-
+use crate::model::RoleUserResource;
 use super::PageParam;
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -101,6 +101,12 @@ pub enum EffectiveRoleEnum {
     None,
     Read,
     Write,
+}
+
+impl From<RoleUserResource> for RoleUserResourceListResult {
+    fn from(value: RoleUserResource) -> Self {
+        Self { id: value.id, name: value.name, display_name: value.display_name }
+    }
 }
 
 impl From<Option<RoleEnum>> for EffectiveRoleEnum {

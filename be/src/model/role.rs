@@ -1,4 +1,3 @@
-use crate::api::RoleUserResourceListResult;
 use chrono::NaiveDateTime;
 
 #[derive(sqlx::FromRow)]
@@ -34,10 +33,4 @@ pub struct RoleUserResource {
     pub id: i64,
     pub name: String,
     pub display_name: String,
-}
-
-impl From<RoleUserResource> for RoleUserResourceListResult {
-    fn from(value: RoleUserResource) -> Self {
-        Self { id: value.id, name: value.name, display_name: value.display_name }
-    }
 }
