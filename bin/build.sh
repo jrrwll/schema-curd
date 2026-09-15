@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 BACKEND_DIR="${PROJECT_DIR}/be"
 TARGET_ARCH="${1:-amd64}"
-OUTPUT_PATH="${2:-${BACKEND_DIR}/schema-curd-linux-${TARGET_ARCH}}"
+OUTPUT_PATH="${2:-${PROJECT_DIR}/bin/schema-curd-linux-${TARGET_ARCH}}"
 WORK_ROOT="${PROJECT_DIR}/.build-work"
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -62,4 +62,8 @@ fi
 mkdir -p "$(dirname -- "${OUTPUT_PATH}")"
 cp "${WORK_DIR}/artifact/schema-curd" "${OUTPUT_PATH}"
 chmod +x "${OUTPUT_PATH}"
-echo "Backend binary created: ${OUTPUT_PATH}"
+echo "Backend server binary created: ${OUTPUT_PATH}"
+
+cp "${WORK_DIR}/artifact/schema-curd-cli" "${OUTPUT_PATH}-cli"
+chmod +x "${OUTPUT_PATH}-cli"
+echo "Backend cli binary created: ${OUTPUT_PATH}-cli"

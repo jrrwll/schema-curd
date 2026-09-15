@@ -29,11 +29,6 @@ if ! command -v file >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "Python 3 is required to generate schema.sqlite" >&2
-  exit 1
-fi
-
 if [[ -z "${PINGAP_BINARY}" ]] && ! command -v curl >/dev/null 2>&1; then
   echo "The curl command is required to download Pingap" >&2
   exit 1
@@ -112,14 +107,9 @@ if [[ "${TARGET_ARCH}" == "arm64" && "${binary_type}" != *"ARM aarch64"* ]]; the
   exit 1
 fi
 
-cp "${BACKEND_DIR}/schema.json" "${WORK_DIR}/schema.json"
-"${SCRIPT_DIR}/schema2sqlite.py" "${WORK_DIR}/schema.json"
-cp "${WORK_DIR}/schema.sqlite" "${PACKAGE_DIR}/be/schema.sqlite"
-cp \
-  "${BACKEND_DIR}/migrations/schema.sqlite.sql" \
+cp "${BACKEND_DIR}/migrations/schema.sqlite.sql" \
   "${PACKAGE_DIR}/be/migrations/schema.sqlite.sql"
-cp \
-  "${BACKEND_DIR}/migrations/schema.mysql.sql" \
+cp "${BACKEND_DIR}/migrations/schema.mysql.sql" \
   "${PACKAGE_DIR}/be/migrations/schema.mysql.sql"
 cp "${BACKEND_DIR}/.env.example" "${PACKAGE_DIR}/be/.env.example"
 printf '%s\n' "${TARGET_ARCH}" > "${PACKAGE_DIR}/be/target_arch"
@@ -127,7 +117,6 @@ cp -R "${FRONTEND_DIR}/dist" "${PACKAGE_DIR}/fe/dist"
 cp "${SCRIPT_DIR}/install.sh" "${PACKAGE_DIR}/bin/install.sh"
 cp "${SCRIPT_DIR}/start.sh" "${PACKAGE_DIR}/bin/start.sh"
 cp "${SCRIPT_DIR}/stop.sh" "${PACKAGE_DIR}/bin/stop.sh"
-cp "${SCRIPT_DIR}/schema2sqlite.py" "${PACKAGE_DIR}/bin/schema2sqlite.py"
 cp "${SCRIPT_DIR}/pingap.toml" "${PACKAGE_DIR}/bin/pingap.toml"
 
 if [[ -n "${PINGAP_BINARY}" ]]; then
@@ -155,11 +144,11 @@ fi
 
 chmod +x \
   "${PACKAGE_DIR}/be/schema-curd" \
+  "${PACKAGE_DIR}/be/schema-curd-cli" \
   "${PACKAGE_DIR}/bin/pingap" \
   "${PACKAGE_DIR}/bin/install.sh" \
   "${PACKAGE_DIR}/bin/start.sh" \
-  "${PACKAGE_DIR}/bin/stop.sh" \
-  "${PACKAGE_DIR}/bin/schema2sqlite.py"
+  "${PACKAGE_DIR}/bin/stop.sh"
 
 find "${PACKAGE_DIR}" -type f -name '.DS_Store' -delete
 tar -C "${WORK_DIR}" -czf "${ARCHIVE_PATH}" "${PACKAGE_NAME}"

@@ -18,3 +18,4 @@ RUN cargo build --release
 FROM scratch AS artifact
 
 COPY --from=builder /app/target/release/schema-curd /schema-curd
+COPY --from=builder /app/target/release/schema-curd-cli /schema-curd-cli
