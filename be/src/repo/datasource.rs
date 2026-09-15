@@ -5,7 +5,7 @@ use sqlx::QueryBuilder;
 
 use crate::{
     api::DatasourceListParam,
-    common::db::DbPool,
+    infra::db::DbPool,
     model::{CreateDatasource, DatasourceEntity, UpdateDatasource},
 };
 

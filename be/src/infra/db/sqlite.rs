@@ -19,7 +19,7 @@ pub async fn connect_database(url: &str) -> anyhow::Result<DbPool> {
         .connect_with(options)
         .await
         .with_context(|| format!("Failed to open SQLite database {url}"))?;
-    return Ok(pool);
+    Ok(pool)
 }
 
 pub fn last_insert_id(result: sqlx::sqlite::SqliteQueryResult) -> anyhow::Result<i64> {

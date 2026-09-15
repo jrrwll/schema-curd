@@ -3,7 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use corers::axum::ApiError;
 
 use crate::{
-    common::{db::DbPool, state::ApiState},
+    common::state::ApiState,
+    infra::db::DbPool,
     model::MetaTable,
     repo::{MetaRepo, RuntimeDatasourceConfig},
     util::deserialize_config,

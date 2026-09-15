@@ -22,7 +22,7 @@ pub async fn connect_database(url: &str) -> anyhow::Result<DbPool> {
         .connect_with(options)
         .await
         .context("Failed to connect to MySQL system database")?;
-    return Ok(pool);
+    Ok(pool)
 }
 
 pub fn last_insert_id(result: sqlx::mysql::MySqlQueryResult) -> anyhow::Result<i64> {

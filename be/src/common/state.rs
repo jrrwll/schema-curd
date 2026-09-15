@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::common::db::{DbPool, connect_database};
+use crate::infra::db::{DbPool, connect_database};
 use crate::repo::PhysicalRegistry;
 use crate::service::MetaService;
 use crate::{

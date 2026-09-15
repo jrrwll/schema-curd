@@ -3,7 +3,7 @@ use sqlx::QueryBuilder;
 
 use crate::{
     api::TableListParam,
-    common::db::DbPool,
+    infra::db::DbPool,
     model::{CreateTable, TableEntity, UpdateTable},
 };
 

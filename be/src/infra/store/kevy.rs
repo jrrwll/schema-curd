@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use kevy_embedded::{Config, Store};
 
@@ -11,25 +11,25 @@ pub(super) struct KevyKvStore {
 }
 
 impl KevyKvStore {
-    pub(super) fn open() -> Result<Self> {
+    pub(super) fn open() -> anyhow::Result<Self> {
         Ok(Self { store: Store::open(Config::default())? })
     }
 }
 
 #[async_trait]
 impl KvStore for KevyKvStore {
-    async fn get(&self, key: String) -> Result<Option<Vec<u8>>> {
+    async fn get(&self, key: String) -> anyhow::Result<Option<Vec<u8>>> {
         Ok(self.store.get(key.as_bytes())?)
     }
 
-    async fn set(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> Result<bool> {
+    async fn set(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> anyhow::Result<bool> {
         let ttl = Duration::from_secs(ttl_seconds);
         Ok(self
             .store
             .with(|store| store.set(key.as_bytes(), value, Some(ttl), false, false)))
     }
 
-    async fn set_if_absent(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> Result<bool> {
+    async fn set_if_absent(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> anyhow::Result<bool> {
         let ttl = Duration::from_secs(ttl_seconds);
         Ok(self
             .store
@@ -39,7 +39,7 @@ impl KvStore for KevyKvStore {
     async fn move_if_value(
         &self, source_key: String, expected_value: Vec<u8>, destination_key: String, destination_value: Vec<u8>,
         ttl_seconds: u64,
-    ) -> Result<bool> {
+    ) -> anyhow::Result<bool> {
         self.store.with(|store| {
             let source = store
                 .get(source_key.as_bytes())
@@ -62,14 +62,14 @@ impl KvStore for KevyKvStore {
         })
     }
 
-    async fn delete(&self, key: String) -> Result<()> {
+    async fn delete(&self, key: String) -> anyhow::Result<()> {
         self.store.with(|store| {
             store.del(&vec![key.as_bytes()]);
         });
         Ok(())
     }
 
-    async fn delete_prefix(&self, prefix: String) -> Result<()> {
+    async fn delete_prefix(&self, prefix: String) -> anyhow::Result<()> {
         self.store.with(|store| {
             let keys = store
                 .collect_keys(None, None)
@@ -82,7 +82,7 @@ impl KvStore for KevyKvStore {
         Ok(())
     }
 
-    async fn increment_below(&self, key: String, limit: u64, ttl_seconds: u64) -> Result<bool> {
+    async fn increment_below(&self, key: String, limit: u64, ttl_seconds: u64) -> anyhow::Result<bool> {
         self.store.with(|store| {
             let current = store
                 .get(key.as_bytes())

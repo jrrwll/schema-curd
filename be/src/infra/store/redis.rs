@@ -1,4 +1,3 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use redis::{Client, Script, aio::MultiplexedConnection};
 
@@ -32,7 +31,7 @@ pub(super) struct RedisKvStore {
 }
 
 impl RedisKvStore {
-    pub(super) async fn open(url: &str) -> Result<Self> {
+    pub(super) async fn open(url: &str) -> anyhow::Result<Self> {
         let client = Client::open(url)?;
         let connection = client.get_multiplexed_async_connection().await?;
         Ok(Self { connection })
@@ -41,12 +40,12 @@ impl RedisKvStore {
 
 #[async_trait]
 impl KvStore for RedisKvStore {
-    async fn get(&self, key: String) -> Result<Option<Vec<u8>>> {
+    async fn get(&self, key: String) -> anyhow::Result<Option<Vec<u8>>> {
         let mut connection = self.connection.clone();
         Ok(redis::cmd("get").arg(key_name(&key)).query_async(&mut connection).await?)
     }
 
-    async fn set(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> Result<bool> {
+    async fn set(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> anyhow::Result<bool> {
         let mut connection = self.connection.clone();
         let result: Option<String> = redis::cmd("set")
             .arg(key_name(&key))
@@ -58,7 +57,7 @@ impl KvStore for RedisKvStore {
         Ok(result.is_some())
     }
 
-    async fn set_if_absent(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> Result<bool> {
+    async fn set_if_absent(&self, key: String, value: Vec<u8>, ttl_seconds: u64) -> anyhow::Result<bool> {
         let mut connection = self.connection.clone();
         let result: Option<String> = redis::cmd("set")
             .arg(key_name(&key))
@@ -74,7 +73,7 @@ impl KvStore for RedisKvStore {
     async fn move_if_value(
         &self, source_key: String, expected_value: Vec<u8>, destination_key: String, destination_value: Vec<u8>,
         ttl_seconds: u64,
-    ) -> Result<bool> {
+    ) -> anyhow::Result<bool> {
         let mut connection = self.connection.clone();
         let moved: i64 = Script::new(MOVE_IF_VALUE_SCRIPT)
             .key(key_name(&source_key))
@@ -87,7 +86,7 @@ impl KvStore for RedisKvStore {
         Ok(moved == 1)
     }
 
-    async fn delete(&self, key: String) -> Result<()> {
+    async fn delete(&self, key: String) -> anyhow::Result<()> {
         let mut connection = self.connection.clone();
         redis::cmd("del")
             .arg(key_name(&key))
@@ -96,7 +95,7 @@ impl KvStore for RedisKvStore {
         Ok(())
     }
 
-    async fn delete_prefix(&self, prefix: String) -> Result<()> {
+    async fn delete_prefix(&self, prefix: String) -> anyhow::Result<()> {
         let mut connection = self.connection.clone();
         let pattern = format!("{}*", key_name(&prefix));
         let mut cursor = 0_u64;
@@ -122,7 +121,7 @@ impl KvStore for RedisKvStore {
         Ok(())
     }
 
-    async fn increment_below(&self, key: String, limit: u64, ttl_seconds: u64) -> Result<bool> {
+    async fn increment_below(&self, key: String, limit: u64, ttl_seconds: u64) -> anyhow::Result<bool> {
         let mut connection = self.connection.clone();
         let incremented: i64 = Script::new(INCREMENT_BELOW_SCRIPT)
             .key(key_name(&key))

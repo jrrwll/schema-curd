@@ -1,6 +1,6 @@
 use crate::get_api_state;
 use rexl::argparse::FromArgs;
-use schema_curd::common::db::DbPool;
+use schema_curd::infra::db::DbPool;
 use schema_curd::model::embed::{ColumnConfig, DatasourceConfig, TableConfig};
 use schema_curd::util::deserialize_config;
 use serde::{Deserialize, Serialize};

@@ -5,7 +5,7 @@ use sqlx::QueryBuilder;
 
 use crate::{
     api::UserListParam,
-    common::db::DbPool,
+    infra::db::DbPool,
     model::{CreateUser, UpdateUser, UserEntity},
 };
 

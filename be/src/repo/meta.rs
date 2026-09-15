@@ -1,7 +1,7 @@
 use anyhow::Context;
 
 use crate::{
-    common::db::DbPool,
+    infra::db::DbPool,
     model::{MetaDatasource, MetaTable},
 };
 

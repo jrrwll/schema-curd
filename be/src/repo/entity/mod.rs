@@ -7,7 +7,7 @@ use sqlx::{MySql, Postgres, mysql::MySqlRow, types::Json};
 
 use crate::{
     model::{BindValue, EntityListPlan},
-    repo::RuntimePool,
+    infra::pool::RuntimePool,
 };
 
 use crate::model::embed::TableDetailConfig;

@@ -7,7 +7,7 @@ use crate::common::constants::MAX_GRANT_LIST_COUNT;
 use crate::model::RoleUserResource;
 use crate::{
     api::RoleListParam,
-    common::db::DbPool,
+    infra::db::DbPool,
     model::{CreateUserRole, RoleEntity},
 };
 

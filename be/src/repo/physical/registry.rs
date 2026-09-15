@@ -1,10 +1,11 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use crate::model::embed::DatasourceConfig;
-use crate::repo::RuntimePool;
 use anyhow::Context;
 use moka::future::Cache;
 use tokio::sync::RwLock;
+
+use crate::infra::pool::RuntimePool;
+use crate::model::embed::DatasourceConfig;
 
 pub struct RuntimeDatasourceConfig {
     pub url: String,

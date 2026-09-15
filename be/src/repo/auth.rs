@@ -1,4 +1,4 @@
-use crate::common::db::DbPool;
+use crate::infra::db::DbPool;
 use crate::model::AuthUser;
 
 pub struct AuthRepo;

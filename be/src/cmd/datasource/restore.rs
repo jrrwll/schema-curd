@@ -6,7 +6,7 @@ use std::process;
 use super::DatasourceBackupRecord;
 use crate::get_api_state;
 use rexl::argparse::FromArgs;
-use schema_curd::common::db::DbPool;
+use schema_curd::infra::db::DbPool;
 use schema_curd::model::CreateTable;
 use schema_curd::util::serialize_config;
 use serde::Serialize;

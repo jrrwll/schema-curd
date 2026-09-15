@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use tracing::{error, info};
 
 use crate::api::TestDatasourceResult;
-use crate::repo::RuntimePool;
+use crate::infra::pool::RuntimePool;
 
 pub enum DatasourceConnectOptions {
     MySql(MySqlConnectOptions),

@@ -5,7 +5,7 @@ use either::Either;
 use tracing::{error, info};
 
 use crate::model::embed::RoleEnum;
-use crate::repo::DatasourceConnectOptions;
+use crate::repo::{DatasourceConnectOptions, PhysicalRepo};
 use crate::service::{AccessService, MetaCacheService};
 use crate::{
     api::*,
@@ -84,7 +84,7 @@ impl PhysicalService {
 
         let started_at = Instant::now();
         info!(datasource = datasource_name.clone(), "querying physical tables");
-        let tables = source.pool.list_tables(PHYSICAL_TABLE_QUERY_LIMIT).await.map_err(|e| {
+        let tables = PhysicalRepo::list_tables(&source.pool, PHYSICAL_TABLE_QUERY_LIMIT).await.map_err(|e| {
             error!(
                 datasource = datasource_name.clone(),
                 error = ?e,
@@ -143,7 +143,7 @@ impl PhysicalService {
 
         let started_at = Instant::now();
         info!(datasource = datasource_name.clone(), table = table_name.to_string(), "querying physical columns");
-        let columns = source.pool.list_columns(table_name).await.map_err(|e| {
+        let columns = PhysicalRepo::list_columns(&source.pool, table_name).await.map_err(|e| {
             error!(
                 datasource_name = datasource_name.clone(),
                 error = ?e,

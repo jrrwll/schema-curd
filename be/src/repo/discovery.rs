@@ -1,6 +1,6 @@
 use crate::api::DiscoveryTableListParam;
 use crate::common::constants::MAX_DISCOVERY_LIST_COUNT;
-use crate::{api::DiscoveryDatasourceListParam, common::db::DbPool, model::DiscoveryDatasourceTable};
+use crate::{api::DiscoveryDatasourceListParam, infra::db::DbPool, model::DiscoveryDatasourceTable};
 
 pub struct DiscoveryRepo;
 
