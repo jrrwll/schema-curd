@@ -104,7 +104,7 @@ impl RoleRepo {
         query_builder.push(" and resource_type = ").push_bind(resource_type);
         query_builder.push(" and resource_id = ").push_bind(resource_id);
 
-        query_builder.push(" and user_ids in (");
+        query_builder.push(" and user_id in (");
         let mut separated = query_builder.separated(", ");
         for id in &user_ids {
             separated.push_bind(*id);

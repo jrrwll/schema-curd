@@ -122,6 +122,7 @@ impl DatasourceService {
         if !op_ok {
             return Err(ErrorCode::operate_failed.into_error());
         }
+        MetaService::reload_registry(state).await?;
         Ok(())
     }
 }

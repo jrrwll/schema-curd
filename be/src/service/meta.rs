@@ -5,7 +5,6 @@ use corers::axum::ApiError;
 use crate::{
     common::state::ApiState,
     infra::db::DbPool,
-    model::MetaTable,
     repo::{MetaRepo, RuntimeDatasourceConfig},
     util::deserialize_config,
 };
@@ -16,12 +15,7 @@ impl MetaService {
     pub async fn load_registry_configs(
         pool: &DbPool,
     ) -> Result<HashMap<String, Arc<RuntimeDatasourceConfig>>, ApiError> {
-        let (databases, tables) = MetaRepo::load_all_datasources(pool).await.map_err(ApiError::unknown)?;
-
-        let mut table_map: HashMap<String, Vec<MetaTable>> = HashMap::new();
-        for table in tables {
-            table_map.entry(table.datasource_name.clone()).or_default().push(table);
-        }
+        let databases = MetaRepo::load_all_datasource(pool).await.map_err(ApiError::unknown)?;
 
         let mut configs: HashMap<String, Arc<RuntimeDatasourceConfig>> = HashMap::with_capacity(databases.len());
         for database in databases {

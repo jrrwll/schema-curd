@@ -2,6 +2,7 @@
 name = "schema-curd"
 version = "0.1.0"
 edition = "2024"
+default-run = "schema-curd"
 
 [[bin]]
 name = "schema-curd-cli"

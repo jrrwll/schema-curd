@@ -1,9 +1,9 @@
 use crate::{
     api::*,
     common::{error::ErrorCode, state::ApiState},
-    model::{CreateTable, TableEntity, UpdateTable, embed::RoleEnum},
+    model::{embed::RoleEnum, CreateTable, TableEntity, UpdateTable},
     repo::TableRepo,
-    service::{AccessService, MetaService},
+    service::AccessService,
     util::serialize_config,
 };
 use corers::{api::PageResult, axum::ApiError};
@@ -80,7 +80,6 @@ impl TableService {
         TableRepo::create(&state.pool, entity, op_user_id)
             .await
             .map_err(ApiError::unknown)?;
-        MetaService::reload_registry(state).await?;
         Ok(())
     }
 
@@ -100,7 +99,6 @@ impl TableService {
         if !op_ok {
             return Err(ErrorCode::operate_failed.into_error());
         }
-        MetaService::reload_registry(state).await?;
         Ok(())
     }
 

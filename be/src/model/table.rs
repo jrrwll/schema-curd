@@ -32,13 +32,3 @@ pub struct UpdateTable {
     pub table_config: String,
     pub columns_config: String,
 }
-
-#[derive(Clone, Default, sqlx::FromRow)]
-pub struct MetaTable {
-    pub id: i64,
-    pub name: String,
-    pub datasource_name: String,
-    pub table_name: String,
-    pub table_config: Option<String>,
-    pub columns_config: Option<String>,
-}
