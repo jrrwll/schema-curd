@@ -73,11 +73,13 @@ pub fn build_list_plan(
 }
 
 fn build_order_by(param: &EntityListParam, config: &TableDetailConfig) -> Result<Vec<OrderByConfig>, ApiError> {
+    let sortable_columns = &config.table_config.sortable_columns;
+
     let order_by = if let Some(order_by) = &param.order_by {
         let column = config
             .columns
             .get(&order_by.sort)
-            .filter(|column| column.sortable)
+            .filter(|column| sortable_columns.contains(&column.name))
             .ok_or_else(|| ApiError::Validation("Field does not support sorting".to_owned()))?;
         vec![OrderByConfig { sort: column.name.clone(), desc: order_by.desc }]
     } else if !config.table_config.default_order_by.is_empty() {

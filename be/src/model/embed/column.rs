@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -30,18 +29,9 @@ pub struct ColumnConfig {
     pub name: String,
     pub display_name: String,
     pub data_type: DataType,
-    #[serde(default)]
     pub optional: bool,
-    #[serde(default)]
-    pub sortable: bool,
-    #[serde(default)]
-    pub hidden_on_create: bool,
-    #[serde(default)]
-    pub hidden_on_list: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pattern: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub search_default_value: Option<Value>,
 }
 
 impl ColumnConfig {

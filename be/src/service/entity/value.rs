@@ -28,7 +28,7 @@ pub fn validate_columns(
     let mut result = HashMap::new();
     for (column_name, column) in &config.columns {
         let is_primary_key = config.table_config.primary_keys.contains(&column_name);
-        if creating && (is_primary_key || column.hidden_on_create) {
+        if creating && is_primary_key {
             continue;
         }
 

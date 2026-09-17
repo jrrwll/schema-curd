@@ -67,6 +67,8 @@ pub struct TableConfig {
     pub insert_fixed_values: HashMap<String, Value>,
     pub select_fixed_where: Vec<FixedWhereConfig>,
     pub default_order_by: Vec<OrderByConfig>,
+    pub sortable_columns: Vec<String>,
+    pub search_default_value: HashMap<String, Value>,
 }
 
 #[derive(Debug)]
