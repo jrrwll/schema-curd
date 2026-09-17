@@ -1,6 +1,7 @@
 import { ArrowLeft, Cable, Database, LoaderCircle, Save } from 'lucide-solid';
-import { Show, createSignal } from 'solid-js';
-import { createDatasource, testDatasourceConnection } from '../api';
+import { Show, createSignal, onCleanup } from 'solid-js';
+import { createDatasource } from '../api/datasource';
+import { testDatasourceConnection } from '../api/physical';
 import DatasourceFormFields, {
   EMPTY_DATASOURCE_FORM,
   type DatasourceFormValue,
@@ -8,7 +9,6 @@ import DatasourceFormFields, {
 
 interface DatasourceCreatePageProps {
   navigate: (url: string) => void;
-  onCreated: () => unknown;
 }
 
 export default function DatasourceCreatePage(props: DatasourceCreatePageProps) {
@@ -17,6 +17,8 @@ export default function DatasourceCreatePage(props: DatasourceCreatePageProps) {
   const [testing, setTesting] = createSignal(false);
   const [serverError, setServerError] = createSignal('');
   const [connectionResult, setConnectionResult] = createSignal<{ kind: 'success' | 'error'; text: string } | null>(null);
+  let active = true;
+  onCleanup(() => { active = false; });
 
   function updateForm(value: DatasourceFormValue) {
     setForm(value);
@@ -34,7 +36,7 @@ export default function DatasourceCreatePage(props: DatasourceCreatePageProps) {
         password: values.password,
       });
       const databaseType = result.database_type === 'mysql' ? 'MySQL' : 'PostgreSQL';
-      setConnectionResult({ kind: 'success', text: `连接测试成功：${databaseType} ${result.version}` });
+      setConnectionResult({ kind: 'success', text: `连接测试成功：${databaseType} ${result.version} · 数据库 ${result.database}` });
     } catch (error) {
       setConnectionResult({ kind: 'error', text: (error as Error).message });
     } finally {
@@ -47,8 +49,16 @@ export default function DatasourceCreatePage(props: DatasourceCreatePageProps) {
     setSubmitting(true);
     setServerError('');
     try {
-      await createDatasource(form());
-      await props.onCreated();
+      const values = form();
+      await createDatasource({
+        name: values.name,
+        display_name: values.display_name,
+        url: values.url,
+        username: values.username,
+        password: values.password,
+        config: { bool_as_int: values.bool_as_int },
+      });
+      if (!active) return;
       props.navigate('/meta/datasource');
     } catch (error) {
       setServerError((error as Error).message);
@@ -72,6 +82,7 @@ export default function DatasourceCreatePage(props: DatasourceCreatePageProps) {
       </header>
 
       <form class="create-form" onSubmit={submit}>
+        <fieldset class="form-disabled-scope" disabled={submitting()}>
         <div class="form-heading">
           <h2><Database size={16} />连接信息</h2>
           <span>MySQL / PostgreSQL</span>
@@ -96,6 +107,7 @@ export default function DatasourceCreatePage(props: DatasourceCreatePageProps) {
             </Show>
           </button>
         </div>
+        </fieldset>
       </form>
     </main>
   );

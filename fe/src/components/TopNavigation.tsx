@@ -1,7 +1,8 @@
 import { Database, LogOut, UserRound, Users, Wrench } from 'lucide-solid';
 import { Show } from 'solid-js';
 import { canAdminUsers } from '../session';
-import type { CurrentUser, RouteState } from '../types';
+import type { RouteState } from '../types/route';
+import type { CurrentUser } from '../types/user';
 
 interface TopNavigationProps {
   user: CurrentUser;

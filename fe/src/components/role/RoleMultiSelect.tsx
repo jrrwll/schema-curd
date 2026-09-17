@@ -1,9 +1,9 @@
 import { Check, ChevronDown, X } from 'lucide-solid';
 import { For, Show, createMemo, createSignal } from 'solid-js';
-import { roleLabel } from '../enumLabels';
-import type { Role } from '../types';
+import { roleLabel } from '../../enumLabels';
+import type { Role } from '../../types/role';
 
-const ROLES: Role[] = ['super_admin', 'user_admin', 'admin', 'write', 'read'];
+const ROLES: Role[] = ['write', 'read'];
 
 interface RoleMultiSelectProps {
   value: Role[];

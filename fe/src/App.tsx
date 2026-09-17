@@ -1,6 +1,6 @@
-import { ShieldX, TriangleAlert } from 'lucide-solid';
-import { Match, Show, Switch, createEffect, createSignal, onCleanup, onMount } from 'solid-js';
-import { getCurrentUser } from './api';
+import { LogOut, RefreshCw, ShieldX, TriangleAlert } from 'lucide-solid';
+import { Match, Show, Switch, batch, createEffect, createSignal, onCleanup, onMount } from 'solid-js';
+import { getCurrentUser } from './api/auth';
 import MetaTabs from './components/MetaTabs';
 import TopNavigation from './components/TopNavigation';
 import UserTabs from './components/UserTabs';
@@ -9,6 +9,8 @@ import DatasourcePage from './pages/DatasourcePage';
 import DatasourceUpdatePage from './pages/DatasourceUpdatePage';
 import EntityWorkspacePage from './pages/EntityWorkspacePage';
 import GrantManagementPage from './pages/GrantManagementPage';
+import RoleGrantByResourcePage from './pages/role/RoleGrantByResourcePage';
+import RoleGrantByUserPage from './pages/role/RoleGrantByUserPage';
 import LoginPage from './pages/LoginPage';
 import TableMetadataCreatePage from './pages/TableMetadataCreatePage';
 import TableMetadataUpdatePage from './pages/TableMetadataUpdatePage';
@@ -23,21 +25,9 @@ import {
   hasSession,
   isSuperAdmin,
 } from './session';
-import type { CurrentUser, RouteState } from './types';
-
-function readRoute(): RouteState {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    pathname: window.location.pathname,
-    redirect: params.get('redirect'),
-    datasource: params.get('datasource'),
-    table: params.get('table'),
-    resource_type: params.get('resource_type'),
-    resource_id: params.get('resource_id'),
-    user: params.get('user'),
-    role: params.get('role'),
-  };
-}
+import { readRoute } from './routing';
+import type { RouteState } from './types/route';
+import type { CurrentUser } from './types/user';
 
 interface WorkspaceProps {
   user: CurrentUser;
@@ -47,8 +37,6 @@ interface WorkspaceProps {
 }
 
 function Workspace(props: WorkspaceProps) {
-  const noOp = () => undefined;
-
   createEffect(() => {
     if (props.route.pathname === '/') props.navigate('/meta/datasource', true);
     if (props.route.pathname === '/meta') {
@@ -72,23 +60,32 @@ function Workspace(props: WorkspaceProps) {
           <UserTabs pathname={props.route.pathname} navigate={props.navigate} />
         </Show>
         <Switch>
+          <Match when={props.route.error}>
+            <div class="app-state app-error"><TriangleAlert size={22} />{props.route.error}</div>
+          </Match>
           <Match when={props.route.pathname === '/meta/datasource/create' && canCreateDatasource(props.user)}>
-            <DatasourceCreatePage navigate={props.navigate} onCreated={noOp} />
+            <DatasourceCreatePage navigate={props.navigate} />
           </Match>
           <Match when={props.route.pathname === '/meta/datasource/update' && props.route.datasource}>
-            <DatasourceUpdatePage id={props.route.datasource} navigate={props.navigate} onUpdated={noOp} />
+            <Show when={props.route.datasource} keyed>
+              {(datasource) => <DatasourceUpdatePage name={datasource} navigate={props.navigate} />}
+            </Show>
           </Match>
           <Match when={props.route.pathname === '/meta/datasource'}>
-            <DatasourcePage canCreate={canCreateDatasource(props.user)} navigate={props.navigate} onChanged={noOp} />
+            <DatasourcePage canCreate={canCreateDatasource(props.user)} canDelete={isSuperAdmin(props.user)} navigate={props.navigate} />
           </Match>
           <Match when={props.route.pathname === '/meta/table/create' && props.route.datasource}>
-            <TableMetadataCreatePage datasourceId={props.route.datasource} navigate={props.navigate} onCreated={noOp} />
+            <Show when={props.route.datasource} keyed>
+              {(datasource) => <TableMetadataCreatePage datasource={datasource} navigate={props.navigate} />}
+            </Show>
           </Match>
           <Match when={props.route.pathname === '/meta/table/update' && props.route.datasource && props.route.table}>
-            <TableMetadataUpdatePage tableId={props.route.table} datasourceId={props.route.datasource} navigate={props.navigate} onUpdated={noOp} />
+            <Show when={props.route.table} keyed>
+              {(tableId) => <TableMetadataUpdatePage tableId={tableId} datasource={props.route.datasource} navigate={props.navigate} />}
+            </Show>
           </Match>
           <Match when={props.route.pathname === '/meta/table'}>
-            <TableWorkspacePage datasource={props.route.datasource} navigate={props.navigate} />
+            <TableWorkspacePage datasource={props.route.datasource} canGrant={isSuperAdmin(props.user)} navigate={props.navigate} />
           </Match>
           <Match when={props.route.pathname === '/entity' || props.route.pathname === '/entity/create'}>
             <EntityWorkspacePage route={props.route} navigate={props.navigate} />
@@ -97,25 +94,24 @@ function Workspace(props: WorkspaceProps) {
             <UserCreatePage navigate={props.navigate} />
           </Match>
           <Match when={props.route.pathname === '/user/update' && canAdminUsers(props.user)}>
-            <UserUpdatePage id={props.route.user} navigate={props.navigate} />
+            <Show when={props.route.user} keyed fallback={<UserUpdatePage id={null} navigate={props.navigate} />}>
+              {(userId) => <UserUpdatePage id={userId} navigate={props.navigate} />}
+            </Show>
           </Match>
           <Match when={props.route.pathname === '/user' && canAdminUsers(props.user)}>
             <UserPage
               currentUserId={props.user.id}
-              canGrantAllDatasources={props.user.is_datasource_admin}
               navigate={props.navigate}
             />
           </Match>
           <Match when={props.route.pathname === '/grant' && canAdminUsers(props.user)}>
-            <GrantManagementPage
-              userIds={props.route.user}
-              roles={props.route.role}
-              resourceType={props.route.resource_type}
-              resourceIds={props.route.resource_id}
-              canManageAdministrativeRoles={isSuperAdmin(props.user)}
-              canGrantAllDatasources={props.user.is_datasource_admin}
-              navigate={props.navigate}
-            />
+            <GrantManagementPage navigate={props.navigate} />
+          </Match>
+          <Match when={props.route.pathname === '/grant/user' && canAdminUsers(props.user) ? props.route.grant_user : null}>
+            {(selection) => <RoleGrantByUserPage selection={selection()} navigate={props.navigate} />}
+          </Match>
+          <Match when={props.route.pathname === '/grant/resource' && canAdminUsers(props.user) ? props.route.grant_resource : null}>
+            {(selection) => <RoleGrantByResourcePage selection={selection()} navigate={props.navigate} />}
           </Match>
           <Match when={(props.route.pathname.startsWith('/user') || props.route.pathname.startsWith('/grant')) && !canAdminUsers(props.user)}>
             <div class="app-state app-error"><ShieldX size={22} />没有访问该页面的权限</div>
@@ -133,7 +129,7 @@ export default function App() {
   const [route, setRoute] = createSignal(readRoute());
   const [user, setUser] = createSignal<CurrentUser | null>(null);
   const [booting, setBooting] = createSignal(true);
-
+  const [bootstrapError, setBootstrapError] = createSignal('');
   function navigate(url: string, replace = false) {
     window.history[replace ? 'replaceState' : 'pushState']({}, '', url);
     setRoute(readRoute());
@@ -154,7 +150,10 @@ export default function App() {
 
   async function loadUser() {
     const current = await getCurrentUser();
-    setUser(current);
+    batch(() => {
+      setBootstrapError('');
+      setUser(current);
+    });
     if (route().pathname === '/login') {
       navigate(safeRedirect(route().redirect) ?? '/meta/datasource', true);
     }
@@ -166,7 +165,26 @@ export default function App() {
     navigate('/login', true);
   }
 
-  const onPopState = () => setRoute(readRoute());
+  async function bootstrapUser() {
+    batch(() => {
+      setBooting(true);
+      setBootstrapError('');
+    });
+    try {
+      if (hasSession()) await loadUser();
+      else redirectToLogin();
+    } catch (error) {
+      setUser(null);
+      if (hasSession()) setBootstrapError((error as Error).message || '加载用户信息失败');
+      else redirectToLogin();
+    } finally {
+      setBooting(false);
+    }
+  }
+
+  const onPopState = () => {
+    setRoute(readRoute());
+  };
   const onAuthExpired = () => {
     setUser(null);
     redirectToLogin();
@@ -175,16 +193,7 @@ export default function App() {
   onMount(async () => {
     window.addEventListener('popstate', onPopState);
     window.addEventListener('auth-expired', onAuthExpired);
-    try {
-      if (hasSession()) await loadUser();
-      else redirectToLogin();
-    } catch {
-      clearSession();
-      setUser(null);
-      redirectToLogin();
-    } finally {
-      setBooting(false);
-    }
+    await bootstrapUser();
   });
   onCleanup(() => {
     window.removeEventListener('popstate', onPopState);
@@ -192,16 +201,27 @@ export default function App() {
   });
 
   createEffect(() => {
-    if (!booting() && !user() && route().pathname !== '/login') redirectToLogin();
+    if (!booting() && !user() && !bootstrapError() && route().pathname !== '/login') redirectToLogin();
   });
 
   return (
     <Show when={!booting()} fallback={<div class="app-state">正在验证登录状态...</div>}>
-      <Show when={user()} keyed fallback={<LoginPage onAuthenticated={loadUser} />}>
-        {(currentUser) => (
-          <Workspace user={currentUser} route={route()} navigate={navigate} onLogout={logout} />
-        )}
-      </Show>
+      <Switch>
+        <Match when={user()} keyed>
+          {(currentUser) => <Workspace user={currentUser} route={route()} navigate={navigate} onLogout={logout} />}
+        </Match>
+        <Match when={bootstrapError()}>
+          <div class="app-state app-error">
+            <TriangleAlert size={22} />
+            <span>加载用户信息失败：{bootstrapError()}</span>
+            <div class="dialog-actions">
+              <button type="button" class="button button-primary" onClick={() => void bootstrapUser()}><RefreshCw size={16} />重试</button>
+              <button type="button" class="button button-ghost" onClick={logout}><LogOut size={16} />退出登录</button>
+            </div>
+          </div>
+        </Match>
+        <Match when><LoginPage onAuthenticated={loadUser} /></Match>
+      </Switch>
     </Show>
   );
 }

@@ -1,23 +1,29 @@
 import { ArrowLeft, Check, LoaderCircle, Save } from 'lucide-solid';
 import { For, Show, createSignal } from 'solid-js';
-import { createEntity } from '../api';
+import { createEntity } from '../api/entity';
 import BooleanSwitch from '../components/BooleanSwitch';
-import type { ColumnConfig, Row, TableConfig, Value } from '../types';
+import type { Row, Value } from '../types/common';
+import type { EntityTableView } from '../types/entity';
+import type { ColumnConfig } from '../types/table';
+import NullableBooleanSelect from './entity/NullableBooleanSelect';
 
 interface CreatePageProps {
-  datasourceId: number;
   datasource: string;
-  table: TableConfig;
+  table: EntityTableView;
   navigate: (url: string) => void;
 }
 
 export default function CreatePage(props: CreatePageProps) {
   const editableColumns = () =>
     props.table.columns.filter(
-      (column) => !column.primary_key && !column.hidden_on_create,
+      (column) => !column.primary_key
+        && !Object.hasOwn(props.table.insert_fixed_values, column.name),
     );
   const initialValues = () =>
-    Object.fromEntries(editableColumns().map((column) => [column.name, column.data_type === 'bool' ? false : '']));
+    Object.fromEntries(editableColumns().map((column) => [
+      column.name,
+      column.data_type === 'bool' ? (column.optional ? null : false) : '',
+    ]));
   const [values, setValues] = createSignal<Row>(initialValues());
   const [errors, setErrors] = createSignal<Record<string, string>>({});
   const [submitting, setSubmitting] = createSignal(false);
@@ -25,10 +31,17 @@ export default function CreatePage(props: CreatePageProps) {
   const [created, setCreated] = createSignal(false);
 
   const listUrl = () =>
-    `/entity?datasource=${props.datasourceId}&table=${props.table.id}`;
+    `/entity?datasource=${encodeURIComponent(props.datasource)}&table=${props.table.id}`;
 
   function validate(column: ColumnConfig, value: Value): string {
     if ((value === '' || value === null || value === undefined) && !column.optional) return `Field ${column.display_name} is required`;
+    if (column.data_type === 'json' && value !== '' && value !== null && value !== undefined) {
+      try {
+        JSON.parse(String(value));
+      } catch {
+        return `Field ${column.display_name} must be valid JSON`;
+      }
+    }
     if (value !== '' && value !== null && column.pattern) {
       try {
         if (!new RegExp(`^(?:${column.pattern})$`).test(String(value))) return `Field ${column.display_name} has an invalid format`;
@@ -57,12 +70,12 @@ export default function CreatePage(props: CreatePageProps) {
     if (Object.values(nextErrors).some(Boolean)) return;
 
     const columns = Object.fromEntries(
-      Object.entries(values()).filter(([, value]) => value !== '' && value !== null),
+      Object.entries(values()).filter(([, value]) => value !== ''),
     );
     setSubmitting(true);
     setServerError('');
     try {
-      await createEntity({ datasource: props.datasource, table: props.table.name, columns });
+      await createEntity({ table_id: props.table.id, columns });
       setCreated(true);
       setValues(initialValues());
     } catch (error) {
@@ -91,6 +104,7 @@ export default function CreatePage(props: CreatePageProps) {
       <Show when={serverError()}><div class="notice notice-error">{serverError()}</div></Show>
 
       <form class="create-form" onSubmit={submit}>
+        <fieldset class="form-disabled-scope" disabled={submitting()}>
         <div class="form-heading">
           <h2>记录信息</h2>
           <span>{editableColumns().length} 个字段</span>
@@ -103,16 +117,21 @@ export default function CreatePage(props: CreatePageProps) {
                   <span>{column.display_name}{!column.optional && <b>*</b>}</span>
                   <code>{column.name}</code>
                 </div>
-                <Show
-                  when={column.data_type !== 'bool'}
-                  fallback={
+                <Show when={column.data_type !== 'bool'} fallback={
+                  <Show when={column.optional} fallback={
                     <BooleanSwitch
                       checked={Boolean(values()[column.name])}
                       label={values()[column.name] ? '是' : '否'}
                       onChange={(checked) => updateValue(column, checked)}
                     />
-                  }
-                >
+                  }>
+                    <NullableBooleanSelect
+                      value={values()[column.name]}
+                      emptyLabel="空值"
+                      onChange={(value) => updateValue(column, value)}
+                    />
+                  </Show>
+                }>
                   <input
                     class="input form-input"
                     classList={{ invalid: Boolean(errors()[column.name]) }}
@@ -136,6 +155,7 @@ export default function CreatePage(props: CreatePageProps) {
             <Show when={submitting()} fallback={<><Save size={16} />提交</>}><LoaderCircle class="spin" size={16} />提交中</Show>
           </button>
         </div>
+        </fieldset>
       </form>
     </main>
   );

@@ -5,10 +5,13 @@ import {
   NAME_MAX_LENGTH,
 } from '../constants';
 import BooleanSwitch from './BooleanSwitch';
-import type { DatasourceInput } from '../types';
-
-export interface DatasourceFormValue extends DatasourceInput {
+export interface DatasourceFormValue {
+  name: string;
+  display_name: string;
+  url: string;
+  username: string;
   password: string;
+  bool_as_int: boolean;
 }
 
 interface DatasourceFormFieldsProps {

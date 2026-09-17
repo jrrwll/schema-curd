@@ -1,5 +1,5 @@
 import { saveTokens, type AuthTokens } from '../session';
-import type { CurrentUser } from '../types';
+import type { CurrentUser } from '../types/user';
 import { request } from './client';
 
 export async function login(name: string, password: string) {

@@ -1,13 +1,4 @@
-import type {
-  CreateUserInput,
-  GrantRoleInput,
-  ListRoleRequest,
-  ListRoleResult,
-  ListUserRequest,
-  ListUserResult,
-  Role,
-  UpdateUserInput,
-} from '../types';
+import type { CreateUserInput, CurrentUser, ListUserRequest, ListUserResult, UpdateUserInput } from '../types/user';
 import { request } from './client';
 
 export function getUsers(body: ListUserRequest) {
@@ -15,6 +6,10 @@ export function getUsers(body: ListUserRequest) {
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+export function getUserDetail(id: number) {
+  return request<CurrentUser>(`/api/user/detail?id=${encodeURIComponent(id)}`);
 }
 
 export function createUser(body: CreateUserInput) {
@@ -47,34 +42,6 @@ export function enableUser(id: number) {
 
 export function deleteUser(id: number) {
   return request<void>('/api/user/delete', {
-    method: 'POST',
-    body: JSON.stringify({ id }),
-  });
-}
-
-export function getRoleGrants(body: ListRoleRequest) {
-  return request<ListRoleResult>('/api/role/list', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function grantRole(body: GrantRoleInput) {
-  return request<void>('/api/role/grant', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function updateRoleGrant(body: { id: number; role: Role }) {
-  return request<void>('/api/role/update', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function revokeRole(id: number) {
-  return request<void>('/api/role/revoke', {
     method: 'POST',
     body: JSON.stringify({ id }),
   });

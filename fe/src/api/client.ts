@@ -12,6 +12,17 @@ interface ApiResult<T> {
   data: T;
 }
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
+}
+
 let refreshPromise: Promise<void> | null = null;
 
 async function rotateRefreshToken(): Promise<void> {
@@ -63,8 +74,16 @@ export async function request<T>(url: string, init?: RequestInit, retry = true):
       throw new Error('登录状态已过期');
     }
   }
+  if (response.status === 401 && url !== '/api/auth/login' && url !== '/api/auth/refresh') {
+    expireSession();
+    throw new Error('登录状态已过期');
+  }
   if (!response.ok) {
-    throw new Error(payload?.msg || `Request failed (${response.status})`);
+    throw new ApiRequestError(
+      payload?.msg || `Request failed (${response.status})`,
+      response.status,
+      payload?.code,
+    );
   }
   return (payload as ApiResult<T>).data;
 }

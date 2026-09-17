@@ -6,17 +6,24 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
+    "analyze": "vite build --mode analyze",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "serve": "vite preview"
   },
   "license": "MIT",
   "devDependencies": {
+    "@solidjs/testing-library": "^0.8.10",
     "@tailwindcss/vite": "^4.1.13",
+    "happy-dom": "^20.14.3",
+    "rollup-plugin-visualizer": "^7.1.1",
     "solid-devtools": "^0.34.3",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
     "vite": "^7.1.4",
-    "vite-plugin-solid": "^2.11.8"
+    "vite-plugin-solid": "^2.11.8",
+    "vitest": "^5.0.0"
   },
   "dependencies": {
     "@ark-ui/solid": "^5.37.1",

@@ -1,6 +1,6 @@
 import { ArrowLeft, LoaderCircle, Save, UserPlus } from 'lucide-solid';
-import { Show, createSignal } from 'solid-js';
-import { createUser } from '../api';
+import { Show, createSignal, onCleanup } from 'solid-js';
+import { createUser } from '../api/user';
 import UserFormFields, { EMPTY_USER_FORM, type UserFormValue } from '../components/UserFormFields';
 
 interface UserCreatePageProps {
@@ -11,6 +11,8 @@ export default function UserCreatePage(props: UserCreatePageProps) {
   const [form, setForm] = createSignal<UserFormValue>({ ...EMPTY_USER_FORM });
   const [submitting, setSubmitting] = createSignal(false);
   const [serverError, setServerError] = createSignal('');
+  let active = true;
+  onCleanup(() => { active = false; });
 
   async function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -23,7 +25,7 @@ export default function UserCreatePage(props: UserCreatePageProps) {
         display_name: values.display_name,
         password: values.password,
       });
-      props.navigate('/user');
+      if (active) props.navigate('/user');
     } catch (error) {
       setServerError((error as Error).message);
     } finally {
@@ -42,9 +44,9 @@ export default function UserCreatePage(props: UserCreatePageProps) {
         </div>
       </header>
       <form class="create-form" onSubmit={submit}>
+        <fieldset class="form-disabled-scope" disabled={submitting()}>
         <div class="form-heading">
           <h2><UserPlus size={16} />用户信息</h2>
-          <span>sys_user</span>
         </div>
         <UserFormFields value={form()} onChange={setForm} />
         <Show when={serverError()}><div class="datasource-form-error notice notice-error">{serverError()}</div></Show>
@@ -56,6 +58,7 @@ export default function UserCreatePage(props: UserCreatePageProps) {
             </Show>
           </button>
         </div>
+        </fieldset>
       </form>
     </main>
   );

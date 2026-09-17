@@ -1,50 +1,29 @@
-import type {
-  DiscoveryDatasourceDetail,
-  DiscoveryDatasourceItem,
-  DiscoveryTableItem,
-  PageResult,
-  ResourceCandidate,
-  ResourceType,
-} from '../types';
+import type { PageRequest, PageResult } from '../types/common';
+import type { DiscoveryDatasourceItem, DiscoveryTableItem } from '../types/discovery';
 import { request } from './client';
 
 export function getDiscoveryDatasources(body: {
+  datasource?: string;
   keyword?: string;
-  page_no: number;
-  page_size: number;
 }) {
-  return request<PageResult<DiscoveryDatasourceItem>>('/api/discovery/datasource/list', {
+  return request<DiscoveryDatasourceItem[]>('/api/discovery/datasource/list', {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
-export function getDiscoveryResourceCandidates(body: {
-  resource_type: Exclude<ResourceType, '*'>;
-  keyword?: string;
-  page_no: number;
-  page_size: number;
-}) {
-  return request<PageResult<ResourceCandidate>>('/api/discovery/resource/list', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function getDiscoveryDatasourceDetail(datasource: number) {
-  return request<DiscoveryDatasourceDetail>('/api/discovery/datasource/detail', {
-    method: 'POST',
-    body: JSON.stringify({ datasource }),
-  });
+export async function getDiscoveryDatasourcePage(body: PageRequest & { keyword?: string }): Promise<PageResult<DiscoveryDatasourceItem>> {
+  const items = await getDiscoveryDatasources({ keyword: body.keyword });
+  const start = (body.page_no - 1) * body.page_size;
+  return { total: items.length, items: items.slice(start, start + body.page_size) };
 }
 
 export function getDiscoveryTables(body: {
-  datasource: number;
+  datasource_id?: number;
+  table_id?: number;
   keyword?: string;
-  page_no: number;
-  page_size: number;
 }) {
-  return request<PageResult<DiscoveryTableItem>>('/api/discovery/table/list', {
+  return request<DiscoveryTableItem[]>('/api/discovery/table/list', {
     method: 'POST',
     body: JSON.stringify(body),
   });

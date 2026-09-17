@@ -1,10 +1,9 @@
-import { Dialog } from '@ark-ui/solid/dialog';
-import { diffLines } from 'diff';
-import { Braces, FileDiff, Minimize2, X } from 'lucide-solid';
-import { For, Show, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
-import { Portal } from 'solid-js/web';
+import { Braces, FileDiff, Minimize2 } from 'lucide-solid';
+import { Show, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import type { Content, JsonEditor } from 'vanilla-jsoneditor';
-import type { Value } from '../types';
+import type { Value } from '../types/common';
+import JsonDiffDialog from './JsonDiffDialog';
+import { buildJsonDiff } from './jsonDiff';
 
 let jsonEditorModule: Promise<typeof import('vanilla-jsoneditor')> | undefined;
 
@@ -25,18 +24,7 @@ type ParsedJson =
   | { valid: true; value: unknown }
   | { valid: false; error: string; source: string };
 
-interface JsonDiffLine {
-  kind: 'context' | 'added' | 'removed';
-  oldLine?: number;
-  newLine?: number;
-  text: string;
-}
-
-function linesOf(value: string) {
-  const lines = value.split('\n');
-  if (lines.at(-1) === '') lines.pop();
-  return lines;
-}
+type JsonDiffMode = 'structured' | 'raw';
 
 export default function JsonViewer(props: JsonViewerProps) {
   let container: HTMLDivElement | undefined;
@@ -49,6 +37,7 @@ export default function JsonViewer(props: JsonViewerProps) {
   const [editorReady, setEditorReady] = createSignal(false);
   const [currentSource, setCurrentSource] = createSignal(initialSource);
   const [diffOpen, setDiffOpen] = createSignal(false);
+  const [diffMode, setDiffMode] = createSignal<JsonDiffMode>('structured');
   const parsed = createMemo<ParsedJson>(() => {
     const source = String(props.value ?? '');
     try {
@@ -61,30 +50,7 @@ export default function JsonViewer(props: JsonViewerProps) {
     const current = parsed();
     return current.valid ? undefined : current;
   });
-  const diff = createMemo(() => {
-    let oldLine = 1;
-    let newLine = 1;
-    const rows: JsonDiffLine[] = [];
-    let additions = 0;
-    let deletions = 0;
-
-    for (const part of diffLines(initialSource, currentSource())) {
-      const kind = part.added ? 'added' : part.removed ? 'removed' : 'context';
-      for (const text of linesOf(part.value)) {
-        if (kind === 'added') {
-          rows.push({ kind, newLine: newLine++, text });
-          additions += 1;
-        } else if (kind === 'removed') {
-          rows.push({ kind, oldLine: oldLine++, text });
-          deletions += 1;
-        } else {
-          rows.push({ kind, oldLine: oldLine++, newLine: newLine++, text });
-        }
-      }
-    }
-
-    return { rows, additions, deletions };
-  });
+  const diff = createMemo(() => buildJsonDiff(initialSource, currentSource(), diffMode()));
 
   createEffect(() => {
     const current = parsed();
@@ -166,6 +132,7 @@ export default function JsonViewer(props: JsonViewerProps) {
     if (!editor) return;
     const content = editor.get();
     setCurrentSource('text' in content ? content.text : JSON.stringify(content.json));
+    setDiffMode('structured');
     setDiffOpen(true);
   }
 
@@ -175,6 +142,18 @@ export default function JsonViewer(props: JsonViewerProps) {
       suppressNextBlur = false;
     });
   }
+
+  createEffect(() => {
+    if (!diffOpen()) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDiffOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape, true);
+    onCleanup(() => document.removeEventListener('keydown', closeOnEscape, true));
+  });
 
   onCleanup(() => {
     disposed = true;
@@ -216,56 +195,7 @@ export default function JsonViewer(props: JsonViewerProps) {
         </div>
         <div class="json-viewer" classList={{ invalid: !parsed().valid }} ref={container} />
       </div>
-      <Dialog.Root open={diffOpen()} onOpenChange={(details) => setDiffOpen(details.open)}>
-        <Portal>
-          <Dialog.Backdrop class="dialog-backdrop" />
-          <Dialog.Positioner class="dialog-positioner">
-            <Dialog.Content class="dialog-content json-diff-dialog">
-              <header class="dialog-header">
-                <div class="dialog-heading">
-                  <span class="dialog-icon"><FileDiff size={18} /></span>
-                  <div>
-                    <Dialog.Title class="dialog-title">JSON Diff</Dialog.Title>
-                    <Dialog.Description class="dialog-description">
-                      对比打开编辑器时的原始内容与当前内容
-                    </Dialog.Description>
-                  </div>
-                </div>
-                <Dialog.CloseTrigger class="dialog-close" title="关闭" aria-label="关闭">
-                  <X size={18} />
-                </Dialog.CloseTrigger>
-              </header>
-              <div class="json-diff-summary">
-                <span>{diff().rows.length} 行</span>
-                <strong class="added">+{diff().additions}</strong>
-                <strong class="removed">-{diff().deletions}</strong>
-              </div>
-              <div class="json-diff-view">
-                <div class="json-diff-file removed">--- 原始内容</div>
-                <div class="json-diff-file added">+++ 当前内容</div>
-                <div class="json-diff-hunk">
-                  @@ -1,{linesOf(initialSource).length} +1,{linesOf(currentSource()).length} @@
-                </div>
-                <For each={diff().rows}>
-                  {(line) => (
-                    <div class={`json-diff-line ${line.kind}`}>
-                      <span class="json-diff-line-number">{line.oldLine ?? ''}</span>
-                      <span class="json-diff-line-number">{line.newLine ?? ''}</span>
-                      <span class="json-diff-marker">
-                        {line.kind === 'added' ? '+' : line.kind === 'removed' ? '-' : ' '}
-                      </span>
-                      <code>{line.text || ' '}</code>
-                    </div>
-                  )}
-                </For>
-              </div>
-              <footer class="dialog-actions">
-                <Dialog.CloseTrigger class="button button-confirm">关闭</Dialog.CloseTrigger>
-              </footer>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
+      <JsonDiffDialog open={diffOpen()} mode={diffMode()} diff={diff()} onModeChange={setDiffMode} onClose={() => setDiffOpen(false)} />
     </Show>
   );
 }

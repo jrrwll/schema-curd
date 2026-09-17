@@ -11,7 +11,7 @@ export default function UserTabs(props: UserTabsProps) {
       <button class="meta-tab" classList={{ active: props.pathname.startsWith('/user') }} onClick={() => props.navigate('/user')}>
         <Users size={16} />用户管理
       </button>
-      <button class="meta-tab" classList={{ active: props.pathname === '/grant' }} onClick={() => props.navigate('/grant')}>
+      <button class="meta-tab" classList={{ active: props.pathname.startsWith('/grant') }} onClick={() => props.navigate('/grant')}>
         <ShieldCheck size={16} />授权管理
       </button>
     </nav>

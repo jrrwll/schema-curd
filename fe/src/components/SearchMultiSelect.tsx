@@ -12,7 +12,6 @@ interface SearchMultiSelectProps {
   value: SearchMultiOption[];
   placeholder: string;
   searchPlaceholder: string;
-  reloadKey?: string;
   disabled?: boolean;
   loadOptions: (keyword: string) => Promise<SearchMultiOption[]>;
   onChange: (value: SearchMultiOption[]) => void;
@@ -34,18 +33,23 @@ export default function SearchMultiSelect(props: SearchMultiSelectProps) {
   });
 
   createEffect(() => {
-    if (!open() || props.disabled) return;
-    props.reloadKey;
+    const current = ++requestId;
+    if (!open() || props.disabled) {
+      setLoading(false);
+      return;
+    }
     const search = keyword();
     const timeout = window.setTimeout(async () => {
-      const current = ++requestId;
       setLoading(true);
       setError('');
       try {
         const result = await props.loadOptions(search.trim());
         if (current === requestId) setItems(result);
       } catch (reason) {
-        if (current === requestId) setError((reason as Error).message);
+        if (current === requestId) {
+          setItems([]);
+          setError((reason as Error).message);
+        }
       } finally {
         if (current === requestId) setLoading(false);
       }

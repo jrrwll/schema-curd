@@ -2,17 +2,20 @@ import { ChevronDown, Settings2, Table2 } from 'lucide-solid';
 import { For, Show, createMemo, createSignal } from 'solid-js';
 import { DISPLAY_NAME_MAX_LENGTH, NAME_MAX_LENGTH } from '../constants';
 import { physicalMetadataDisplayName } from '../physicalMetadata';
-import type { PhysicalTableItem, TableMetadataConfig } from '../types';
-import TableAdvancedSettings, {
+import type { PhysicalColumnItem, PhysicalTableItem } from '../types/physical';
+import type { TableConfig } from '../types/table';
+import TableAdvancedSettings from './TableAdvancedSettings';
+import {
   EMPTY_TABLE_ADVANCED_FORM,
   buildTableAdvancedConfig,
   tableAdvancedFormValue,
   type TableAdvancedColumn,
   type TableAdvancedFormValue,
-} from './TableAdvancedSettings';
+} from './tableAdvancedConfig';
 
 export interface TableMetadataFormValue {
   name: string;
+  table_name: string;
   display_name: string;
   advanced: TableAdvancedFormValue;
 }
@@ -21,23 +24,27 @@ interface TableMetadataFormFieldsProps {
   value: TableMetadataFormValue;
   editing?: boolean;
   physicalTables?: PhysicalTableItem[];
+  physicalColumns?: PhysicalColumnItem[];
   columns?: TableAdvancedColumn[];
   onChange: (value: TableMetadataFormValue) => void;
 }
 
 export const EMPTY_TABLE_METADATA_FORM: TableMetadataFormValue = {
   name: '',
+  table_name: '',
   display_name: '',
   advanced: EMPTY_TABLE_ADVANCED_FORM,
 };
 
 export function tableMetadataFormValue(
   name: string,
+  tableName: string,
   displayName: string,
-  config: TableMetadataConfig,
+  config: TableConfig,
 ): TableMetadataFormValue {
   return {
     name,
+    table_name: tableName,
     display_name: displayName,
     advanced: tableAdvancedFormValue(config),
   };
@@ -45,9 +52,10 @@ export function tableMetadataFormValue(
 
 export function buildTableMetadataConfig(
   value: TableMetadataFormValue,
-  columns: TableAdvancedColumn[],
-): TableMetadataConfig {
-  return buildTableAdvancedConfig(value.advanced, columns);
+  physicalColumns: TableAdvancedColumn[],
+  logicalColumns: TableAdvancedColumn[],
+): TableConfig {
+  return buildTableAdvancedConfig(value.advanced, physicalColumns, logicalColumns);
 }
 
 export default function TableMetadataFormFields(props: TableMetadataFormFieldsProps) {
@@ -55,14 +63,15 @@ export default function TableMetadataFormFields(props: TableMetadataFormFieldsPr
   const update = (value: Partial<TableMetadataFormValue>) =>
     props.onChange({ ...props.value, ...value });
   const filteredTableNames = createMemo(() => {
-    const keyword = props.value.name.trim().toLocaleLowerCase();
+    const keyword = props.value.table_name.trim().toLocaleLowerCase();
     return (props.physicalTables ?? [])
       .filter((table) => !keyword || table.name.toLocaleLowerCase().includes(keyword));
   });
 
   function selectTable(table: PhysicalTableItem) {
     update({
-      name: table.name,
+      table_name: table.name,
+      name: props.value.name || table.name,
       display_name: physicalMetadataDisplayName(table.comment, table.name),
     });
     setTableNamesOpen(false);
@@ -82,7 +91,7 @@ export default function TableMetadataFormFields(props: TableMetadataFormFieldsPr
             if (event.key === 'Escape') setTableNamesOpen(false);
           }}
         >
-          <label class="form-label" for="table-metadata-name">名称<b>*</b></label>
+          <label class="form-label" for="table-metadata-name">物理表<b>*</b></label>
           <input
             id="table-metadata-name"
             class="input form-input"
@@ -92,10 +101,10 @@ export default function TableMetadataFormFields(props: TableMetadataFormFieldsPr
             autocomplete="off"
             aria-haspopup={!props.editing && Boolean(props.physicalTables) ? 'listbox' : undefined}
             aria-expanded={!props.editing && Boolean(props.physicalTables) ? tableNamesOpen() : undefined}
-            value={props.value.name}
+            value={props.value.table_name}
             onFocus={() => setTableNamesOpen(true)}
             onInput={(event) => {
-              update({ name: event.currentTarget.value });
+              update({ table_name: event.currentTarget.value });
               setTableNamesOpen(true);
             }}
           />
@@ -106,8 +115,8 @@ export default function TableMetadataFormFields(props: TableMetadataFormFieldsPr
                   <button
                     type="button"
                     role="option"
-                    aria-selected={props.value.name === table.name}
-                    classList={{ selected: props.value.name === table.name }}
+                    aria-selected={props.value.table_name === table.name}
+                    classList={{ selected: props.value.table_name === table.name }}
                     title={table.comment || table.name}
                     onClick={() => selectTable(table)}
                   >
@@ -122,6 +131,10 @@ export default function TableMetadataFormFields(props: TableMetadataFormFieldsPr
             </div>
           </Show>
         </div>
+        <label class="form-field">
+          <span class="form-label">配置名称<b>*</b></span>
+          <input class="input form-input" required disabled={props.editing} maxlength={NAME_MAX_LENGTH} value={props.value.name} onInput={(event) => update({ name: event.currentTarget.value })} />
+        </label>
         <label class="form-field">
           <span class="form-label">展示名称<b>*</b></span>
           <input class="input form-input" required maxlength={DISPLAY_NAME_MAX_LENGTH} value={props.value.display_name} onInput={(event) => update({ display_name: event.currentTarget.value })} />
@@ -139,7 +152,8 @@ export default function TableMetadataFormFields(props: TableMetadataFormFieldsPr
         </summary>
         <TableAdvancedSettings
           value={props.value.advanced}
-          columns={props.columns ?? []}
+          physicalColumns={props.physicalColumns ?? []}
+          logicalColumns={props.columns ?? []}
           onChange={(advanced) => update({ advanced })}
         />
       </details>

@@ -1,64 +1,41 @@
 import type {
+  TableMetadataCreateInput,
   TableMetadataDetailRecord,
   TableMetadataFilters,
-  TableMetadataInput,
   TableMetadataListRecord,
-  PhysicalTableListResult,
-} from '../types';
+  TableMetadataUpdateInput,
+} from '../types/table';
+import type { PageResult } from '../types/common';
 import { request } from './client';
 
-export function getTableMetadata(filters: TableMetadataFilters) {
-  return request<TableMetadataListRecord[]>('/api/table/list', {
-    method: 'POST',
-    body: JSON.stringify(filters),
-  });
-}
-
-export function getTableMetadataDetail(body: { id: number; datasource: string }) {
-  return request<TableMetadataDetailRecord>('/api/table/detail', {
+export function getTableMetadata(body: TableMetadataFilters) {
+  return request<PageResult<TableMetadataListRecord>>('/api/table/list', {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
-export function getPhysicalTables(datasource: string) {
-  return request<PhysicalTableListResult>('/api/table/physical/list', {
-    method: 'POST',
-    body: JSON.stringify({ datasource }),
-  });
+export function getTableMetadataDetail(id: number) {
+  return request<TableMetadataDetailRecord>(`/api/table/detail?id=${encodeURIComponent(id)}`);
 }
 
-export function refreshPhysicalTables(datasource: string) {
-  return request<PhysicalTableListResult>('/api/table/physical/refresh', {
-    method: 'POST',
-    body: JSON.stringify({ datasource }),
-  });
-}
-
-export function createTableMetadata(body: TableMetadataInput) {
-  return request<{ id: number }>('/api/table/create', {
+export function createTableMetadata(body: TableMetadataCreateInput) {
+  return request<void>('/api/table/create', {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
-export function updateTableMetadata(body: Omit<TableMetadataInput, 'name'> & { id: number }) {
+export function updateTableMetadata(body: TableMetadataUpdateInput) {
   return request<void>('/api/table/update', {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
-export function publishTableMetadata(body: { id: number; datasource: string }) {
-  return request<void>('/api/table/publish', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export function deleteTableMetadata(body: { id: number; datasource: string }) {
+export function deleteTableMetadata(id: number) {
   return request<void>('/api/table/delete', {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify({ id }),
   });
 }

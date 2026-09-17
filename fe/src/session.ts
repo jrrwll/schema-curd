@@ -1,4 +1,4 @@
-import type { CurrentUser } from './types';
+import type { CurrentUser } from './types/user';
 
 const ACCESS_TOKEN_KEY = 'schema-curd-access-token';
 const REFRESH_TOKEN_KEY = 'schema-curd-refresh-token';
@@ -31,13 +31,13 @@ export function clearSession(): void {
 }
 
 export function isSuperAdmin(user: CurrentUser): boolean {
-  return user.is_super_admin;
+  return user.super_admin;
 }
 
 export function canCreateDatasource(user: CurrentUser): boolean {
-  return user.is_datasource_admin;
+  return user.super_admin;
 }
 
 export function canAdminUsers(user: CurrentUser): boolean {
-  return user.is_super_admin || user.is_user_admin;
+  return user.super_admin;
 }

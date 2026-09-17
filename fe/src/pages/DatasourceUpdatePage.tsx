@@ -1,26 +1,28 @@
 import { ArrowLeft, Cable, Database, LoaderCircle, Save, ShieldX, TriangleAlert } from 'lucide-solid';
-import { Match, Show, Switch, createEffect, createResource, createSignal } from 'solid-js';
-import { getDatasourceDetail, testDatasourceConnection, updateDatasource } from '../api';
+import { Match, Show, Switch, createEffect, createMemo, createResource, createSignal, onCleanup } from 'solid-js';
+import { getDatasourceDetailByName, updateDatasource } from '../api/datasource';
+import { testDatasourceConnection } from '../api/physical';
 import DatasourceFormFields, { type DatasourceFormValue } from '../components/DatasourceFormFields';
 
 interface DatasourceUpdatePageProps {
-  id: string | null;
+  name: string | null;
   navigate: (url: string) => void;
-  onUpdated: () => unknown;
 }
 
 export default function DatasourceUpdatePage(props: DatasourceUpdatePageProps) {
-  const id = () => Number(props.id);
   const [datasource] = createResource(
-    () => Number.isInteger(id()) && id() > 0 ? id() : undefined,
-    getDatasourceDetail,
+    () => props.name || undefined,
+    getDatasourceDetailByName,
   );
+  const datasourceValue = createMemo(() => datasource.error ? undefined : datasource());
   const [form, setForm] = createSignal<DatasourceFormValue>();
   const [loadedId, setLoadedId] = createSignal<number | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
   const [testing, setTesting] = createSignal(false);
   const [serverError, setServerError] = createSignal('');
   const [connectionResult, setConnectionResult] = createSignal<{ kind: 'success' | 'error'; text: string } | null>(null);
+  let active = true;
+  onCleanup(() => { active = false; });
 
   function updateForm(value: DatasourceFormValue) {
     setForm(value);
@@ -29,18 +31,19 @@ export default function DatasourceUpdatePage(props: DatasourceUpdatePageProps) {
 
   async function testConnection() {
     const values = form();
-    if (!values || !Number.isInteger(id()) || id() <= 0) return;
+    const current = datasourceValue();
+    if (!values || !current) return;
     setTesting(true);
     setConnectionResult(null);
     try {
       const result = await testDatasourceConnection({
-        id: id(),
+        id: current.id,
         url: values.url,
         username: values.username,
         password: values.password || undefined,
       });
       const databaseType = result.database_type === 'mysql' ? 'MySQL' : 'PostgreSQL';
-      setConnectionResult({ kind: 'success', text: `连接测试成功：${databaseType} ${result.version}` });
+      setConnectionResult({ kind: 'success', text: `连接测试成功：${databaseType} ${result.version} · 数据库 ${result.database}` });
     } catch (error) {
       setConnectionResult({ kind: 'error', text: (error as Error).message });
     } finally {
@@ -49,16 +52,16 @@ export default function DatasourceUpdatePage(props: DatasourceUpdatePageProps) {
   }
 
   createEffect(() => {
-    const current = datasource();
+    const current = datasourceValue();
     if (!current || loadedId() === current.id) return;
-    if (current.role_action !== 'write') return;
+    if (current.effective_role !== 'write') return;
     setForm({
       name: current.name,
       display_name: current.display_name,
       url: current.url,
       username: current.username,
       password: '',
-      bool_as_int: current.bool_as_int,
+      bool_as_int: current.config.bool_as_int,
     });
     setLoadedId(current.id);
   });
@@ -66,20 +69,21 @@ export default function DatasourceUpdatePage(props: DatasourceUpdatePageProps) {
   async function submit(event: SubmitEvent) {
     event.preventDefault();
     const values = form();
-    if (!values || !Number.isInteger(id()) || id() <= 0) return;
+    const current = datasourceValue();
+    if (!values || !current) return;
     setSubmitting(true);
     setServerError('');
     try {
       const password = values.password ? { password: values.password } : {};
       await updateDatasource({
-        id: id(),
+        name: current.name,
         display_name: values.display_name,
         url: values.url,
         username: values.username,
-        bool_as_int: values.bool_as_int,
+        config: { bool_as_int: values.bool_as_int },
         ...password,
       });
-      await props.onUpdated();
+      if (!active) return;
       props.navigate('/meta/datasource');
     } catch (error) {
       setServerError((error as Error).message);
@@ -98,7 +102,7 @@ export default function DatasourceUpdatePage(props: DatasourceUpdatePageProps) {
           <div>
             <div class="eyebrow">数据源管理</div>
             <h1>编辑数据源</h1>
-            <Show when={datasource()}>{(current) => <div class="table-code">{current().name}</div>}</Show>
+          <Show when={datasourceValue()}>{(current) => <div class="table-code">{current().name}</div>}</Show>
           </div>
         </div>
       </header>
@@ -110,15 +114,16 @@ export default function DatasourceUpdatePage(props: DatasourceUpdatePageProps) {
         <Match when={datasource.error}>
           <div class="app-state app-error"><TriangleAlert size={20} />{datasource.error?.message}</div>
         </Match>
-        <Match when={!datasource()}>
+        <Match when={!datasourceValue()}>
           <div class="app-state app-error"><TriangleAlert size={20} />Datasource not found</div>
         </Match>
-        <Match when={datasource()?.role_action !== 'write'}>
+        <Match when={datasourceValue()?.effective_role !== 'write'}>
           <div class="app-state app-error"><ShieldX size={20} />没有修改该数据源的权限</div>
         </Match>
         <Match when={form()}>
           {(value) => (
             <form class="create-form" onSubmit={submit}>
+              <fieldset class="form-disabled-scope" disabled={submitting()}>
               <div class="form-heading">
                 <h2><Database size={16} />连接信息</h2>
                 <span>MySQL / PostgreSQL</span>
@@ -143,6 +148,7 @@ export default function DatasourceUpdatePage(props: DatasourceUpdatePageProps) {
                   </Show>
                 </button>
               </div>
+              </fieldset>
             </form>
           )}
         </Match>

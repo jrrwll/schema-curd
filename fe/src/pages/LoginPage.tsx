@@ -1,6 +1,6 @@
 import { Database, LoaderCircle, LogIn } from 'lucide-solid';
 import { Show, createSignal } from 'solid-js';
-import { login } from '../api';
+import { login } from '../api/auth';
 import { NAME_MAX_LENGTH, PASSWORD_MAX_LENGTH } from '../constants';
 
 interface LoginPageProps {
