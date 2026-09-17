@@ -17,7 +17,6 @@ pub const MAX_GRANT_LIST_COUNT: u32 = 100;
 pub const MAX_DISCOVERY_LIST_COUNT: u32 = 500;
 
 pub const MAX_TABLES_PER_DATASOURCE: i64 = 1_000;
-pub const PHYSICAL_TABLE_LIMIT: usize = 500;
 
 pub const NAME_MAX_LENGTH: usize = 100;
 pub const DISPLAY_NAME_MAX_LENGTH: usize = 30;

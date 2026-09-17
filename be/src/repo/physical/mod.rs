@@ -14,17 +14,16 @@ pub struct PhysicalRepo;
 
 impl PhysicalRepo {
 
-    pub async fn list_tables(pool: &RuntimePool, limit: usize) -> anyhow::Result<Vec<PhysicalTableListResult>> {
+    pub async fn list_tables(pool: &RuntimePool) -> anyhow::Result<Vec<PhysicalTableListResult>> {
         match pool {
             RuntimePool::MySql(pool) => sqlx::query_as::<_, PhysicalTableRow>(
                 "
                     select table_name as name, coalesce(table_comment, '') as comment \
                     from information_schema.tables \
                     where table_schema = database() and table_type = 'BASE TABLE' \
-                    order by table_name limit ?
+                    order by table_name limit 501
                     ",
             )
-                .bind(i64::try_from(limit).unwrap_or(i64::MAX))
                 .fetch_all(pool)
                 .await
                 .context("Failed to query MySQL physical tables"),
@@ -33,10 +32,9 @@ impl PhysicalRepo {
                     select c.relname as name, coalesce(obj_description(c.oid, 'pg_class'), '') as comment \
                     from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace \
                     where n.nspname = current_schema() and c.relkind in ('r', 'p') \
-                    order by c.relname limit $1
+                    order by c.relname limit 501
                     ",
             )
-                .bind(i64::try_from(limit).unwrap_or(i64::MAX))
                 .fetch_all(pool)
                 .await
                 .context("Failed to query PostgreSQL physical tables"),

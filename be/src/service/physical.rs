@@ -9,10 +9,8 @@ use crate::repo::{DatasourceConnectOptions, PhysicalRepo};
 use crate::service::{AccessService, MetaCacheService};
 use crate::{
     api::*,
-    common::{constants::PHYSICAL_TABLE_LIMIT, error::ErrorCode, state::ApiState},
+    common::{error::ErrorCode, state::ApiState},
 };
-
-const PHYSICAL_TABLE_QUERY_LIMIT: usize = PHYSICAL_TABLE_LIMIT + 1;
 
 pub struct PhysicalService;
 
@@ -84,7 +82,7 @@ impl PhysicalService {
 
         let started_at = Instant::now();
         info!(datasource = datasource_name.clone(), "querying physical tables");
-        let tables = PhysicalRepo::list_tables(&source.pool, PHYSICAL_TABLE_QUERY_LIMIT).await.map_err(|e| {
+        let tables = PhysicalRepo::list_tables(&source.pool).await.map_err(|e| {
             error!(
                 datasource = datasource_name.clone(),
                 error = ?e,
