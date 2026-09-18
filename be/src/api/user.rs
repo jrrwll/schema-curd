@@ -36,7 +36,7 @@ async fn profile(
 }
 
 async fn list(
-    State(state): State<ApiState>, CurrentSuperAdmin(identity): CurrentSuperAdmin,
+    State(state): State<ApiState>, CurrentSuperAdmin(_): CurrentSuperAdmin,
     ValidatedJson(param): ValidatedJson<UserListParam>,
 ) -> Result<ApiPageResult<UserListResult>, ApiError> {
     UserService::list(&state, param).await.map(Into::into)
