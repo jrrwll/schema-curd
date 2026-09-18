@@ -1,5 +1,7 @@
 use anyhow::anyhow;
-use axum::Router;
+use axum::{Router, middleware};
+use corers::axum::{tracing_middleware, LOCAL_IP};
+use corers::util::get_local_ip;
 use tracing::info;
 use validator::Validate;
 
@@ -9,6 +11,10 @@ use schema_curd::common::state::ApiState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    if let Some(local_ip) = get_local_ip() {
+        LOCAL_IP.set(local_ip).expect("LOCAL_IP already initialized");
+    }
+
     let cfg = AppConfig::parse()?;
     cfg.validate()?;
     let addr = cfg.build_addr();
@@ -16,7 +22,9 @@ async fn main() -> anyhow::Result<()> {
 
     let state = ApiState::new(cfg).await?;
 
-    let app = Router::new().nest("/api", build_api_routers()).with_state(state);
+    let app = Router::new().nest("/api", build_api_routers())
+        .layer(middleware::from_fn(tracing_middleware))
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&addr)
         .await

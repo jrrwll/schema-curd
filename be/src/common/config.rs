@@ -5,8 +5,7 @@ use corers::tracing::LeveledRollingFileAppender;
 use serde::Deserialize;
 use tracing_appender::rolling::{Builder, RollingFileAppender, Rotation};
 use tracing_subscriber::fmt;
-use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
-
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 use validator::Validate;
 
 use crate::common::constants::{DEFAULT_DATABASE_URL, DEFAULT_LISTEN_PORT, MIN_JWT_SECRET_LENGTH};
