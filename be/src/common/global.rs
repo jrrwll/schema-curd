@@ -7,7 +7,7 @@ use crate::common::config::AppConfig;
 
 static JWT_PROVIDER: OnceLock<Arc<JwtProvider>> = OnceLock::new();
 
-pub fn init_jwt_provider(config: &AppConfig) {
+pub fn init_global_vars(config: &AppConfig) {
     let jwt_provider = JwtProvider::from_secret(config.jwt_secret.clone())
         .context("failed to init jwt_provider")
         .unwrap();

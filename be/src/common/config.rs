@@ -1,6 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use corers::tracing::LeveledRollingFileAppender;
 use serde::Deserialize;
 use tracing_appender::rolling::{Builder, RollingFileAppender, Rotation};
@@ -9,7 +9,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use validator::Validate;
 
 use crate::common::constants::{DEFAULT_DATABASE_URL, DEFAULT_LISTEN_PORT, MIN_JWT_SECRET_LENGTH};
-use crate::common::global::init_jwt_provider;
 
 #[derive(Deserialize, Validate)]
 pub struct AppConfig {
@@ -41,7 +40,7 @@ fn default_database_url() -> String {
 }
 
 impl AppConfig {
-    pub fn parse() -> Result<Self> {
+    pub fn parse() -> anyhow::Result<Self> {
         if let Err(error) = dotenvy::dotenv() {
             if !error.not_found() {
                 return Err(error).context("Failed to load .env");
@@ -54,9 +53,10 @@ impl AppConfig {
         format!("{}:{}", self.listen_host, self.listen_port)
     }
 
-    pub fn init(&self) {
-        init_jwt_provider(self);
+    pub fn init(&self) -> anyhow::Result<()> {
+        self.validate()?;
         self.init_tracing();
+        Ok(())
     }
 
     fn init_tracing(&self) {

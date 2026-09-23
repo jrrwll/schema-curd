@@ -1,12 +1,12 @@
 use anyhow::anyhow;
-use axum::{Router, middleware};
+use axum::{middleware, Router};
 use corers::axum::{tracing_middleware, LOCAL_IP};
 use corers::util::get_local_ip;
 use tracing::info;
-use validator::Validate;
 
 use schema_curd::api::build_api_routers;
 use schema_curd::common::config::AppConfig;
+use schema_curd::common::global::init_global_vars;
 use schema_curd::common::state::ApiState;
 
 #[tokio::main]
@@ -16,10 +16,10 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let cfg = AppConfig::parse()?;
-    cfg.validate()?;
-    let addr = cfg.build_addr();
-    cfg.init();
+    cfg.init()?;
+    init_global_vars(&cfg);
 
+    let addr = cfg.build_addr();
     let state = ApiState::new(cfg).await?;
 
     let app = Router::new().nest("/api", build_api_routers())
